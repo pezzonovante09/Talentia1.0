@@ -84,12 +84,12 @@ Tali's response (1-2 short sentences, kid-friendly):`;
       });
     }
 
-    // Try different model names - v1 API requires specific model names
+    // Try different model names - use models that are actually available
     const modelsToTry = [
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-flash", 
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-pro"
+      "gemini-2.5-flash",      // Latest and fastest
+      "gemini-2.0-flash",      // Alternative
+      "gemini-2.5-flash-lite", // Lightweight option
+      "gemini-2.5-pro"         // More capable but slower
     ];
     
     let aiRes = null;

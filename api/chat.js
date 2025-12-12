@@ -78,7 +78,14 @@ ${!isCorrectAnswer && !isAskingForHelp ? "💭 The child is trying. Be encouragi
 
 Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouraging, ALWAYS finish your thought):
 
-IMPORTANT: Your response MUST end with proper punctuation (. ! or ?). Never stop mid-sentence. Always complete your full thought before ending.`;
+CRITICAL: Your response MUST be a complete thought that ends with proper punctuation (. ! or ?). 
+- NEVER stop mid-sentence
+- NEVER stop mid-word  
+- ALWAYS write the full sentence to completion
+- Example of COMPLETE response: "Of course! Let's think about this step by step. Try counting each number carefully!"
+- Example of INCOMPLETE (BAD): "Of course! Let's think about this step by" - this is WRONG, finish the sentence!
+
+Write your COMPLETE response now:`;
 
     // Check if API key is set
     if (!process.env.GEMINI_API_KEY) {
@@ -117,8 +124,8 @@ IMPORTANT: Your response MUST end with proper punctuation (. ! or ?). Never stop
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { 
-              temperature: 0.9, 
-              maxOutputTokens: 300,  // Increased further for complete responses
+              temperature: 0.8,  // Slightly lower for more consistent completion
+              maxOutputTokens: 500,  // Much higher to ensure complete responses
               topP: 0.95
             }
           }),
@@ -177,17 +184,12 @@ IMPORTANT: Your response MUST end with proper punctuation (. ! or ?). Never stop
         .trim();
     }
     
-    // Check if reply ends mid-sentence (no punctuation at end)
-    if (reply && !reply.match(/[.!?]$/)) {
-      console.warn(`⚠️ Reply may be incomplete - doesn't end with punctuation: "${reply}"`);
-    }
-    
     // Fallback if no reply
     if (!reply || reply.length === 0) {
       if (isCorrectAnswer) {
         reply = "Wow! You got it! 🎉🦕";
       } else if (isAskingForHelp) {
-        reply = "Try counting step by step! 🦕";
+        reply = "Of course! Let's think about this step by step. Try counting each number carefully! 🦕";
       } else {
         reply = "Let's think together! 🦕";
       }
@@ -195,13 +197,31 @@ IMPORTANT: Your response MUST end with proper punctuation (. ! or ?). Never stop
 
     // Log the full reply for debugging
     console.log(`Full reply received (${reply.length} chars): ${reply}`);
+    console.log(`Finish reason: ${finishReason}`);
     
     // Check if reply seems incomplete (no ending punctuation)
-    // If incomplete, try to complete it or at least log a warning
+    // If incomplete, try to complete it intelligently
     if (reply && !reply.match(/[.!?]$/)) {
       console.warn(`⚠️ Incomplete reply detected: "${reply}"`);
-      // Don't truncate - let the incomplete response through so we can see the issue
-      // The frontend will display it as-is
+      console.warn(`Finish reason was: ${finishReason}`);
+      
+      // Try to complete the incomplete sentence intelligently
+      const lastSpace = reply.lastIndexOf(' ');
+      if (lastSpace > 0) {
+        // Remove the incomplete last word and add a complete ending
+        const baseMessage = reply.substring(0, lastSpace);
+        if (isAskingForHelp) {
+          reply = baseMessage + "! Let's try counting step by step together! 🦕";
+        } else if (isCorrectAnswer) {
+          reply = baseMessage + "! Great job! 🎉🦕";
+        } else {
+          reply = baseMessage + "! Let's think about this together! 🦕";
+        }
+      } else {
+        // No space found, just append a friendly ending
+        reply = reply.trim() + "! Let's try again! 🦕";
+      }
+      console.log(`Completed reply: "${reply}"`);
     }
     
     // Only truncate if extremely long (keep it reasonable for kids, but allow complete sentences)

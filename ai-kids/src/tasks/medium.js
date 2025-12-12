@@ -2,7 +2,7 @@ const generateMediumTask = () => {
   let left = Math.floor(Math.random() * 5) + 1;
   let right = Math.floor(Math.random() * 5) + 1;
 
-  // избегаем равных значений
+  // avoid equal values
   while (left === right) {
     right = Math.floor(Math.random() * 5) + 1;
   }

@@ -1,16 +1,16 @@
 const generateHardTask = () => {
   const shapes = ["🔵", "🟢", "🟣", "⬛"];
 
-  // выбираем один базовый shape
+  // choose one base shape
   const base = shapes[Math.floor(Math.random() * shapes.length)];
 
-  // выбираем odd shape, который ≠ base
+  // choose odd shape that is different from base
   let odd = shapes[Math.floor(Math.random() * shapes.length)];
   while (odd === base) {
     odd = shapes[Math.floor(Math.random() * shapes.length)];
   }
 
-  // создаём ряд: 4 одинаковых + один odd
+  // create array: 4 same + one odd
   const arr = Array(5).fill(base);
   const oddIndex = Math.floor(Math.random() * 5);
   arr[oddIndex] = odd;
@@ -18,7 +18,7 @@ const generateHardTask = () => {
   return {
     question: "Which shape does NOT belong?",
     answer: oddIndex,
-    // options — массив индексов позиции
+    // options - array of position indices
     options: arr.map((shape, index) => ({ shape, index })),
     renderExtra: (
       <div className="flex justify-center gap-4 mt-4 text-4xl">

@@ -1,26 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Task from "./Task";
 
+import { loadProfile } from "../utils/profileManager";
+
 export default function TaskScreen() {
-  const { id } = useParams();          // 1, 2 или 3
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const level = Number(id);
-
-  const [difficulty, setDifficulty] = useState("normal");
-
-  function handleFinish(result) {
-    // result = easy | normal | harder
-    setDifficulty(result);
-
-    // unlock next island
+  function handleFinish() {
+    // Unlock next island
     const progress = JSON.parse(localStorage.getItem("progress")) || {
       island1: true,
       island2: false,
       island3: false,
     };
 
+    const level = Number(id);
     if (level === 1) {
       progress.island2 = true;
     } else if (level === 2) {
@@ -29,11 +25,12 @@ export default function TaskScreen() {
 
     localStorage.setItem("progress", JSON.stringify(progress));
 
-    // go back to map
+    // Go back to map
     setTimeout(() => {
       navigate("/map");
     }, 1000);
   }
 
-  return <Task level={level} onFinish={handleFinish} difficulty={difficulty} />;
+  // Don't pass level - let Task component use adaptive level from profile
+  return <Task onFinish={handleFinish} />;
 }

@@ -19,7 +19,14 @@ if (process.env.NODE_ENV === 'development') {
   console.log('🔗 Using backend URL:', BACKEND_URL);
 }
 
-export default function useChatAssistant({ question, correct, attempts, mistakes }) {
+export default function useChatAssistant({ 
+  question, 
+  correct, 
+  taskType = "add",
+  level = 1,
+  mistakes = 0,
+  lastThreeMistakes = []
+}) {
   const [messages, setMessages] = useState(() => [
     { role: "assistant", content: "Hi! I'm Tali 🦕. Let's think together!" }
   ]);
@@ -30,11 +37,19 @@ export default function useChatAssistant({ question, correct, attempts, mistakes
   // Use refs to track latest values without causing re-renders
   const questionRef = useRef(question);
   const correctRef = useRef(correct);
+  const taskTypeRef = useRef(taskType);
+  const levelRef = useRef(level);
+  const mistakesRef = useRef(mistakes);
+  const lastThreeMistakesRef = useRef(lastThreeMistakes);
   const messagesRef = useRef(messages);
 
   // Update refs when props/state change
   questionRef.current = question;
   correctRef.current = correct;
+  taskTypeRef.current = taskType;
+  levelRef.current = level;
+  mistakesRef.current = mistakes;
+  lastThreeMistakesRef.current = lastThreeMistakes;
   messagesRef.current = messages;
 
   const sendMessage = useCallback(async (text) => {
@@ -61,6 +76,10 @@ export default function useChatAssistant({ question, correct, attempts, mistakes
       const currentHistory = messagesRef.current;
       const currentQuestion = questionRef.current;
       const currentCorrect = correctRef.current;
+      const currentTaskType = taskTypeRef.current;
+      const currentLevel = levelRef.current;
+      const currentMistakes = mistakesRef.current;
+      const currentLastThreeMistakes = lastThreeMistakesRef.current;
 
       const res = await fetch(BACKEND_URL, {
         method: "POST",
@@ -68,9 +87,11 @@ export default function useChatAssistant({ question, correct, attempts, mistakes
         body: JSON.stringify({
           message: trimmed,
           task: currentQuestion || "",
-          correct: currentCorrect || "",
-          attempts: attempts || 0,
-          mistakes: mistakes || 0,
+          correctAnswer: currentCorrect || "",
+          taskType: currentTaskType || "add",
+          level: currentLevel || 1,
+          mistakes: currentMistakes || 0,
+          lastThreeMistakes: currentLastThreeMistakes || [],
           history: currentHistory
         })
       });
@@ -113,7 +134,7 @@ export default function useChatAssistant({ question, correct, attempts, mistakes
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, attempts, mistakes]);
+  }, [isLoading, question, correct, taskType, level, mistakes, lastThreeMistakes]);
 
   return { messages, isLoading, error, sendMessage };
 }

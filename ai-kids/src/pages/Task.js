@@ -1,56 +1,41 @@
 // src/pages/Task.js
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import ScreenSection from "../components/ScreenSection";
 import ChatPanel from "../components/ChatPanel";
 import { generateTaskByLevel } from "../data/taskGenerators";
+import { loadProfile, updateProfileAfterSession } from "../utils/profileManager";
 
-function loadProfile() {
-  const raw = localStorage.getItem("talentia_profile");
-  return raw ? JSON.parse(raw) : null;
-}
-function saveProfile(profile) {
-  localStorage.setItem("talentia_profile", JSON.stringify(profile));
-}
-
-export default function Task({ level = 1, onFinish }) {
+export default function Task({ level = null, onFinish }) {
   const [step, setStep] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [lockedOption, setLockedOption] = useState(null);
+  const [currentLevel, setCurrentLevel] = useState(level || 1);
+  const [profile, setProfile] = useState(null);
+
+  // Load profile and set level on mount
+  useEffect(() => {
+    const loadedProfile = loadProfile();
+    setProfile(loadedProfile);
+    if (!level) {
+      setCurrentLevel(loadedProfile.level);
+    }
+  }, [level]);
 
   // create 3 tasks once per mount / level
   const tasks = useMemo(() => [
-    generateTaskByLevel(level),
-    generateTaskByLevel(level),
-    generateTaskByLevel(level)
-  ], [level]);
+    generateTaskByLevel(currentLevel),
+    generateTaskByLevel(currentLevel),
+    generateTaskByLevel(currentLevel)
+  ], [currentLevel]);
 
   const q = tasks[step];
 
   function finishSession() {
-    const profile = loadProfile() || {
-      level: 1,
-      tasksCompleted: 0,
-      totalMistakes: 0,
-      points: 0,
-      achievements: [],
-      lastThreeMistakes: [],
-      levelHistory: [1]
-    };
-
-    profile.tasksCompleted += 1;
-    profile.totalMistakes += mistakes;
-    profile.lastThreeMistakes = [...profile.lastThreeMistakes, mistakes].slice(-3);
-
-    let newLevel = profile.level;
-    if (mistakes <= 1) newLevel = Math.min(3, newLevel + 1);
-    else if (mistakes >= 3) newLevel = Math.max(1, newLevel - 1);
-
-    profile.levelHistory.push(newLevel);
-    profile.level = newLevel;
-
-    profile.points += Math.max(1, 5 - mistakes);
-
-    saveProfile(profile);
+    if (!profile) return;
+    
+    // Update profile with adaptive difficulty
+    const updatedProfile = updateProfileAfterSession(mistakes);
+    setProfile(updatedProfile);
 
     if (typeof onFinish === "function") onFinish();
   }
@@ -141,12 +126,13 @@ export default function Task({ level = 1, onFinish }) {
           </div>
         )}
 
-        {/* FIXED: correctAnswer instead of correct */}
         <ChatPanel
           question={q.question}
           correctAnswer={q.correct}
-          attempts={step + 1}
+          taskType={q.type}
+          level={currentLevel}
           mistakes={mistakes}
+          lastThreeMistakes={profile?.lastThreeMistakes || []}
         />
       </div>
     </ScreenSection>

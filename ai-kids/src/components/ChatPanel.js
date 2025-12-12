@@ -3,7 +3,15 @@ import PrimaryButton from "./ui/PrimaryButton";
 import CharacterBubble from "./ui/CharacterBubble";
 import useChatAssistant from "../hooks/useChatAssistant";
 
-export default function ChatPanel({ question, correct, correctAnswer, attempts, mistakes }) {
+export default function ChatPanel({ 
+  question, 
+  correct, 
+  correctAnswer, 
+  taskType,
+  level = 1,
+  mistakes = 0,
+  lastThreeMistakes = []
+}) {
   const [input, setInput] = useState("");
 
   // Support both 'correct' and 'correctAnswer' prop names
@@ -12,8 +20,10 @@ export default function ChatPanel({ question, correct, correctAnswer, attempts, 
   const { messages, isLoading, error, sendMessage } = useChatAssistant({
     question: question || "",
     correct: correctValue,
-    attempts: attempts || 0,
-    mistakes: mistakes || 0
+    taskType: taskType || "add",
+    level: level,
+    mistakes: mistakes,
+    lastThreeMistakes: lastThreeMistakes
   });
 
   function handleSubmit(e) {

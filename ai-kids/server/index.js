@@ -51,41 +51,83 @@ app.post("/api/voice-chat", upload.single("audio"), (req, res) => {
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages = [], question = "" } = req.body;
+    const { message = "", task = "", correct = "", history = [] } = req.body;
 
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: "Messages are required." });
-    }
+    // Normalize message and correct answer for comparison
+    const normalizedMessage = message.trim().toLowerCase();
+    const normalizedCorrect = String(correct).trim().toLowerCase();
+    const isCorrectAnswer = normalizedMessage === normalizedCorrect;
+    
+    // Check if user is asking for help
+    const helpKeywords = ["help", "hint", "idk", "i don't know", "don't know", "stuck", "what", "how"];
+    const isAskingForHelp = helpKeywords.some(keyword => 
+      normalizedMessage.includes(keyword)
+    );
 
-    const limitedMessages = messages.slice(-8).map((message) => ({
-      role: message.role === "assistant" ? "assistant" : "user",
-      content: message.content,
-    }));
+    // Build conversation history context (last 6 messages to avoid token bloat)
+    const recentHistory = Array.isArray(history) ? history.slice(-6) : [];
+    const historyContext = recentHistory
+      .map(m => `${m.role === "assistant" ? "Tali" : "Child"}: ${m.content}`)
+      .join("\n");
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Build a stable, non-loopy prompt
+    const prompt = `You are Tali the Dino, a kind and friendly helper for kids ages 5-8.
 
-    let history = "";
-    limitedMessages.forEach((message) => {
-      history += `${message.role.toUpperCase()}: ${message.content}\n`;
+IMPORTANT RULES:
+1. Always answer in 1-2 very short, simple sentences (max 15 words total).
+2. NEVER reveal the correct answer "${correct}" - you can only give hints.
+3. If the child says "${correct}" (the correct answer), praise them warmly with excitement!
+4. If the child asks for help (says "help", "hint", "idk", etc.), give ONE simple, actionable hint that guides them without giving the answer.
+5. Make each hint DIFFERENT from previous hints - be creative and vary your approach.
+6. Never repeat the same phrase you just said.
+7. Keep your tone warm, encouraging, and age-appropriate.
+
+Current Task: "${task}"
+Correct Answer (NEVER say this number/word): "${correct}"
+
+Previous conversation:
+${historyContext || "(This is the start of our chat)"}
+
+Child's message: "${message}"
+
+${isCorrectAnswer ? "IMPORTANT: The child just gave the CORRECT answer! Praise them enthusiastically!" : ""}
+${isAskingForHelp ? "IMPORTANT: The child is asking for help. Give a simple, unique hint that hasn't been given before." : ""}
+
+Tali's response (1-2 short sentences, kid-friendly):`;
+
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 40,
+        topP: 0.9
+      }
     });
-
-    const prompt = `You are Tali, a playful dinosaur mentor for ages 4-7.
-Use short, positive sentences and never reveal full answers directly.
-Current question (optional): ${question || "none"}.
-Here is the conversation so far:
-${history}
-Continue as Tali with one or two short sentences.`;
 
     const response = await model.generateContent(prompt);
 
-    const reply =
-      response.response.text()?.trim() ||
-      "I'm proud of you! Let's think again together.";
+    let reply = response.response.text()?.trim();
+    
+    // Fallback if no reply
+    if (!reply || reply.length === 0) {
+      if (isCorrectAnswer) {
+        reply = "Wow! You got it! 🎉🦕";
+      } else if (isAskingForHelp) {
+        reply = "Try counting step by step! 🦕";
+      } else {
+        reply = "Let's think together! 🦕";
+      }
+    }
+
+    // Ensure reply is short (truncate if too long)
+    if (reply.length > 100) {
+      reply = reply.substring(0, 97) + "...";
+    }
 
     res.json({ reply });
   } catch (error) {
     console.error("Chat error", error);
-    res.status(500).json({ error: "Chat with Tali is busy. Try again soon." });
+    res.status(500).json({ reply: "Tali is thinking... try again! 🦕" });
   }
 });
 

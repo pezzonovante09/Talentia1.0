@@ -51,6 +51,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     setLastCompletedTask(null);
     setShowLevelCompleteModal(false);
     setAnswerFeedback(null);
+    setSelectedOptionResult(null);
   }, [currentLevel, difficultyModifier]);
 
   // Track if session is finished to prevent showing 4th task
@@ -61,6 +62,8 @@ export default function Task({ level = null, onFinish, islandId = null }) {
   const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
   // Track answer feedback (correct/incorrect)
   const [answerFeedback, setAnswerFeedback] = useState(null); // 'correct' | 'incorrect' | null
+  // Track which option was correct/incorrect
+  const [selectedOptionResult, setSelectedOptionResult] = useState(null); // { option: value, isCorrect: boolean } | null
 
   // Generate 3 tasks where each is progressively harder:
   // Task 1: Easy (level 1)
@@ -137,10 +140,12 @@ export default function Task({ level = null, onFinish, islandId = null }) {
   function handleAnswer(option) {
     if (!q || sessionFinished) return; // Safety check - don't process if session finished
     
-    const correct = option === q.correct;
+    // Normalize comparison - convert both to strings for reliable comparison
+    const correct = String(option) === String(q.correct);
 
     setLockedOption(option);
     setAnswerFeedback(correct ? 'correct' : 'incorrect');
+    setSelectedOptionResult({ option, isCorrect: correct });
 
     if (!correct) {
       setMistakes(m => m + 1);
@@ -157,6 +162,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       setTimeout(() => {
         setLockedOption(null);
         setAnswerFeedback(null);
+        setSelectedOptionResult(null);
       }, 1500);
       return;
     } else {
@@ -175,6 +181,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       // Wait a bit to show success feedback, then show modal
       setTimeout(() => {
         setAnswerFeedback(null);
+        setSelectedOptionResult(null);
         finishSession();
       }, 800);
     } else {
@@ -182,6 +189,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       setTimeout(() => {
         setLockedOption(null);
         setAnswerFeedback(null);
+        setSelectedOptionResult(null);
         setStep(s => s + 1);
       }, 800);
     }
@@ -211,16 +219,16 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         {(q.type === "add" || q.type === "subtract" || q.type === "multiply" || q.type === "sequence" || q.type === "compute") && (
           <div className="grid grid-cols-2 gap-3">
             {q.options.map(opt => {
-              const isSelected = lockedOption === opt;
-              const isCorrect = isSelected && opt === q.correct;
-              const isIncorrect = isSelected && opt !== q.correct;
+              const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
+              const isCorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && selectedOptionResult.isCorrect;
+              const isIncorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && !selectedOptionResult.isCorrect;
               
               return (
                 <button
                   key={opt}
                   disabled={lockedOption !== null}
                   onClick={() => handleAnswer(opt)}
-                  className={`p-4 border-2 rounded-xl text-xl font-bold transition-all ${
+                  className={`p-4 border-2 rounded-xl text-xl font-bold transition-all duration-300 ${
                     isCorrect
                       ? "bg-green-500 text-white border-green-600 scale-105"
                       : isIncorrect
@@ -243,16 +251,16 @@ export default function Task({ level = null, onFinish, islandId = null }) {
             <p className="text-xl">Right: {q.right}</p>
             <div className="grid grid-cols-2 gap-3">
               {q.options.map(opt => {
-                const isSelected = lockedOption === opt;
-                const isCorrect = isSelected && opt === q.correct;
-                const isIncorrect = isSelected && opt !== q.correct;
+                const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
+                const isCorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && selectedOptionResult.isCorrect;
+                const isIncorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && !selectedOptionResult.isCorrect;
                 
                 return (
                   <button
                     key={opt}
                     disabled={lockedOption !== null}
                     onClick={() => handleAnswer(opt)}
-                    className={`p-4 border-2 rounded-xl font-bold transition-all ${
+                    className={`p-4 border-2 rounded-xl font-bold transition-all duration-300 ${
                       isCorrect
                         ? "bg-green-500 text-white border-green-600 scale-105"
                         : isIncorrect
@@ -273,16 +281,16 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         {q.type === "odd" && (
           <div className="flex justify-center gap-3 text-4xl">
             {q.items.map((shape, i) => {
-              const isSelected = lockedOption === shape;
-              const isCorrect = isSelected && shape === q.correct;
-              const isIncorrect = isSelected && shape !== q.correct;
+              const isSelected = lockedOption !== null && String(lockedOption) === String(shape);
+              const isCorrect = isSelected && selectedOptionResult && String(selectedOptionResult.option) === String(shape) && selectedOptionResult.isCorrect;
+              const isIncorrect = isSelected && selectedOptionResult && String(selectedOptionResult.option) === String(shape) && !selectedOptionResult.isCorrect;
               
               return (
                 <button
                   key={i}
                   disabled={lockedOption !== null}
                   onClick={() => handleAnswer(shape)}
-                  className={`p-4 rounded-xl shadow transition-all ${
+                  className={`p-4 rounded-xl shadow transition-all duration-300 ${
                     isCorrect
                       ? "bg-green-500 scale-110 border-4 border-green-600"
                       : isIncorrect

@@ -46,10 +46,8 @@ export default function TaskScreen() {
 
     localStorage.setItem("progress", JSON.stringify(progress));
 
-    // Navigate back to map
-    setTimeout(() => {
-      navigate("/map");
-    }, 1000);
+    // Navigate back to map (navigation is handled by modal in Task.js)
+    navigate("/map");
   }
 
   // Pass island id to Task so it knows which island we're on

@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import ScreenSection from "../components/ScreenSection";
 import ChatPanel from "../components/ChatPanel";
+import LevelCompleteModal from "../components/LevelCompleteModal";
 import { generateTaskByLevel } from "../data/taskGenerators";
 import { loadProfile, updateProfileAfterSession } from "../utils/profileManager";
 import { saveErrorRecord, saveSuccessRecord, saveSessionSummary } from "../utils/analytics";
@@ -48,12 +49,18 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     setLockedOption(null);
     setSessionFinished(false);
     setLastCompletedTask(null);
+    setShowLevelCompleteModal(false);
+    setAnswerFeedback(null);
   }, [currentLevel, difficultyModifier]);
 
   // Track if session is finished to prevent showing 4th task
   const [sessionFinished, setSessionFinished] = useState(false);
   // Store the last completed task to keep it visible during transition
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
+  // Show level complete modal
+  const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
+  // Track answer feedback (correct/incorrect)
+  const [answerFeedback, setAnswerFeedback] = useState(null); // 'correct' | 'incorrect' | null
 
   // Generate 3 tasks where each is progressively harder:
   // Task 1: Easy (level 1)
@@ -115,6 +122,12 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       timestamp: new Date().toISOString()
     });
     
+    // Show level complete modal instead of immediately navigating
+    setShowLevelCompleteModal(true);
+  }
+
+  function handleContinueFromModal() {
+    setShowLevelCompleteModal(false);
     // Call onFinish to navigate back to map
     if (typeof onFinish === "function") {
       onFinish(mistakes);
@@ -127,6 +140,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     const correct = option === q.correct;
 
     setLockedOption(option);
+    setAnswerFeedback(correct ? 'correct' : 'incorrect');
 
     if (!correct) {
       setMistakes(m => m + 1);
@@ -139,7 +153,11 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         islandId: islandId,
         timestamp: new Date().toISOString()
       });
-      setTimeout(() => setLockedOption(null), 700);
+      // Clear feedback and unlock after showing error
+      setTimeout(() => {
+        setLockedOption(null);
+        setAnswerFeedback(null);
+      }, 1500);
       return;
     } else {
       // Save success to analytics
@@ -152,17 +170,20 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       });
     }
 
-    // If this is the last task (step 2), finish session immediately
-    // Don't show 4th task - finish right away
+    // If this is the last task (step 2), finish session
     if (step === 2) {
-      // Immediately finish and navigate - don't wait
-      finishSession();
+      // Wait a bit to show success feedback, then show modal
+      setTimeout(() => {
+        setAnswerFeedback(null);
+        finishSession();
+      }, 800);
     } else {
-      // Move to next task
+      // Move to next task after showing success feedback
       setTimeout(() => {
         setLockedOption(null);
+        setAnswerFeedback(null);
         setStep(s => s + 1);
-      }, 400);
+      }, 800);
     }
   }
 
@@ -175,21 +196,44 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         <h2 className="text-2xl font-bold">Task {step + 1} of 3</h2>
         <p className="text-lg font-semibold">{q.question}</p>
 
+        {/* Answer Feedback Message */}
+        {answerFeedback && (
+          <div className={`p-4 rounded-xl text-lg font-bold animate-bounce ${
+            answerFeedback === 'correct' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-red-500 text-white'
+          }`}>
+            {answerFeedback === 'correct' ? '✅ Правильно! Отлично!' : '❌ Неправильно. Попробуй еще раз!'}
+          </div>
+        )}
+
         {/* TASK TYPES HANDLE */}
         {(q.type === "add" || q.type === "subtract" || q.type === "multiply" || q.type === "sequence" || q.type === "compute") && (
           <div className="grid grid-cols-2 gap-3">
-            {q.options.map(opt => (
-              <button
-                key={opt}
-                disabled={lockedOption !== null}
-                onClick={() => handleAnswer(opt)}
-                className={`p-4 border rounded-xl text-xl font-bold ${
-                  lockedOption === opt ? "bg-gray-300" : "bg-white hover:bg-emerald-100"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
+            {q.options.map(opt => {
+              const isSelected = lockedOption === opt;
+              const isCorrect = isSelected && opt === q.correct;
+              const isIncorrect = isSelected && opt !== q.correct;
+              
+              return (
+                <button
+                  key={opt}
+                  disabled={lockedOption !== null}
+                  onClick={() => handleAnswer(opt)}
+                  className={`p-4 border-2 rounded-xl text-xl font-bold transition-all ${
+                    isCorrect
+                      ? "bg-green-500 text-white border-green-600 scale-105"
+                      : isIncorrect
+                      ? "bg-red-500 text-white border-red-600 scale-105"
+                      : lockedOption !== null
+                      ? "bg-gray-300 opacity-50"
+                      : "bg-white hover:bg-emerald-100 border-gray-300"
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -198,36 +242,60 @@ export default function Task({ level = null, onFinish, islandId = null }) {
             <p className="text-xl">Left: {q.left}</p>
             <p className="text-xl">Right: {q.right}</p>
             <div className="grid grid-cols-2 gap-3">
-              {q.options.map(opt => (
-                <button
-                  key={opt}
-                  disabled={lockedOption !== null}
-                  onClick={() => handleAnswer(opt)}
-                  className={`p-4 border rounded-xl font-bold ${
-                    lockedOption === opt ? "bg-gray-300" : "bg-white hover:bg-emerald-100"
-                  }`}
-                >
-                  {opt.toUpperCase()}
-                </button>
-              ))}
+              {q.options.map(opt => {
+                const isSelected = lockedOption === opt;
+                const isCorrect = isSelected && opt === q.correct;
+                const isIncorrect = isSelected && opt !== q.correct;
+                
+                return (
+                  <button
+                    key={opt}
+                    disabled={lockedOption !== null}
+                    onClick={() => handleAnswer(opt)}
+                    className={`p-4 border-2 rounded-xl font-bold transition-all ${
+                      isCorrect
+                        ? "bg-green-500 text-white border-green-600 scale-105"
+                        : isIncorrect
+                        ? "bg-red-500 text-white border-red-600 scale-105"
+                        : lockedOption !== null
+                        ? "bg-gray-300 opacity-50"
+                        : "bg-white hover:bg-emerald-100 border-gray-300"
+                    }`}
+                  >
+                    {opt.toUpperCase()}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
         {q.type === "odd" && (
           <div className="flex justify-center gap-3 text-4xl">
-            {q.items.map((shape, i) => (
-              <button
-                key={i}
-                disabled={lockedOption !== null}
-                onClick={() => handleAnswer(shape)}
-                className={`p-4 rounded-xl shadow ${
-                  lockedOption === shape ? "bg-gray-300" : "bg-white hover:bg-emerald-100"
-                }`}
-              >
-                {shape}
-              </button>
-            ))}
+            {q.items.map((shape, i) => {
+              const isSelected = lockedOption === shape;
+              const isCorrect = isSelected && shape === q.correct;
+              const isIncorrect = isSelected && shape !== q.correct;
+              
+              return (
+                <button
+                  key={i}
+                  disabled={lockedOption !== null}
+                  onClick={() => handleAnswer(shape)}
+                  className={`p-4 rounded-xl shadow transition-all ${
+                    isCorrect
+                      ? "bg-green-500 scale-110 border-4 border-green-600"
+                      : isIncorrect
+                      ? "bg-red-500 scale-110 border-4 border-red-600"
+                      : lockedOption !== null
+                      ? "bg-gray-300 opacity-50"
+                      : "bg-white hover:bg-emerald-100"
+                  }`}
+                >
+                  {shape}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -240,6 +308,15 @@ export default function Task({ level = null, onFinish, islandId = null }) {
           lastThreeMistakes={profile?.lastThreeMistakes || []}
         />
       </div>
+
+      {/* Level Complete Modal */}
+      {showLevelCompleteModal && (
+        <LevelCompleteModal
+          islandId={islandId}
+          mistakes={mistakes}
+          onContinue={handleContinueFromModal}
+        />
+      )}
     </ScreenSection>
   );
 }

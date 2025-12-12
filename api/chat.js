@@ -76,7 +76,9 @@ ${isCorrectAnswer ? "🎉 SUCCESS! The child just gave the CORRECT answer! Celeb
 ${isAskingForHelp ? "💡 HELP REQUESTED: The child needs help. Give a COMPLETE, friendly, unique hint that guides them without revealing the answer. Make sure to finish your full thought!" : ""}
 ${!isCorrectAnswer && !isAskingForHelp ? "💭 The child is trying. Be encouraging and give a COMPLETE helpful hint to guide them. Finish your full sentence!" : ""}
 
-Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouraging, ALWAYS finish your thought):`;
+Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouraging, ALWAYS finish your thought):
+
+IMPORTANT: Your response MUST end with proper punctuation (. ! or ?). Never stop mid-sentence. Always complete your full thought before ending.`;
 
     // Check if API key is set
     if (!process.env.GEMINI_API_KEY) {
@@ -116,9 +118,8 @@ Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouragi
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { 
               temperature: 0.9, 
-              maxOutputTokens: 250,  // Increased for complete responses
-              topP: 0.95,
-              stopSequences: []  // Don't stop early
+              maxOutputTokens: 300,  // Increased further for complete responses
+              topP: 0.95
             }
           }),
         });
@@ -154,7 +155,15 @@ Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouragi
     const data = await aiRes.json();
     
     // Debug: log the full response structure
-    console.log("Gemini API response structure:", JSON.stringify(data).substring(0, 500));
+    console.log("Gemini API response structure:", JSON.stringify(data).substring(0, 1000));
+    
+    // Check why the response finished
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    console.log(`Finish reason: ${finishReason}`);
+    
+    if (finishReason === "MAX_TOKENS" || finishReason === "OTHER") {
+      console.warn(`⚠️ Response may be incomplete! Finish reason: ${finishReason}`);
+    }
 
     let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     
@@ -166,6 +175,11 @@ Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouragi
         .filter(Boolean)
         .join(" ")
         .trim();
+    }
+    
+    // Check if reply ends mid-sentence (no punctuation at end)
+    if (reply && !reply.match(/[.!?]$/)) {
+      console.warn(`⚠️ Reply may be incomplete - doesn't end with punctuation: "${reply}"`);
     }
     
     // Fallback if no reply
@@ -182,18 +196,27 @@ Tali's friendly, supportive response (1-2 COMPLETE sentences, warm and encouragi
     // Log the full reply for debugging
     console.log(`Full reply received (${reply.length} chars): ${reply}`);
     
+    // Check if reply seems incomplete (no ending punctuation)
+    // If incomplete, try to complete it or at least log a warning
+    if (reply && !reply.match(/[.!?]$/)) {
+      console.warn(`⚠️ Incomplete reply detected: "${reply}"`);
+      // Don't truncate - let the incomplete response through so we can see the issue
+      // The frontend will display it as-is
+    }
+    
     // Only truncate if extremely long (keep it reasonable for kids, but allow complete sentences)
-    if (reply.length > 200) {
-      // Find the last complete sentence before 200 chars
-      const truncated = reply.substring(0, 200);
+    if (reply.length > 300) {
+      // Find the last complete sentence before 300 chars
+      const truncated = reply.substring(0, 300);
       const lastPeriod = truncated.lastIndexOf('.');
       const lastExclamation = truncated.lastIndexOf('!');
       const lastQuestion = truncated.lastIndexOf('?');
       const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
       
-      if (lastSentenceEnd > 50) {
+      if (lastSentenceEnd > 100) {
         reply = reply.substring(0, lastSentenceEnd + 1);
       } else {
+        // If no sentence end found, just truncate at 300
         reply = truncated + "...";
       }
     }

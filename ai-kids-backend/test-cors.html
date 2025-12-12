@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>Testing CORS for Vercel API</h1>
+    <button onclick="testOPTIONS()">Test OPTIONS (Preflight)</button>
+    <button onclick="testPOST()">Test POST</button>
+    <pre id="result"></pre>
+
+    <script>
+        const API_URL = 'https://talentia1-0.vercel.app/api/chat';
+
+        async function testOPTIONS() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing OPTIONS...';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                
+                resultEl.textContent = `OPTIONS Response:\nStatus: ${response.status}\n\nHeaders:\n${JSON.stringify(headers, null, 2)}`;
+            } catch (error) {
+                resultEl.textContent = `OPTIONS Error: ${error.message}`;
+            }
+        }
+
+        async function testPOST() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Testing POST...';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'test',
+                        task: 'test task',
+                        correct: 'test',
+                        history: []
+                    })
+                });
+                
+                const data = await response.json();
+                const headers = {};
+                response.headers.forEach((value, key) => {
+                    headers[key] = value;
+                });
+                
+                resultEl.textContent = `POST Response:\nStatus: ${response.status}\n\nHeaders:\n${JSON.stringify(headers, null, 2)}\n\nData:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultEl.textContent = `POST Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
+

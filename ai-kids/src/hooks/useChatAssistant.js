@@ -9,7 +9,7 @@ const getBackendUrl = () => {
     return process.env.REACT_APP_API_URL;
   }
   // Use Vercel backend (CORS is fixed, works from localhost too)
-  return "https://talentia-backend-lf8wxivet-denizs-projects-a72ae425.vercel.app/api/chat";
+  return "https://talentia1-0.vercel.app/api/chat";
 };
 
 const BACKEND_URL = getBackendUrl();

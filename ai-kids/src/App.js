@@ -1,0 +1,21 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Map from "./pages/Map";
+import TaskScreen from "./pages/TaskScreen";
+import Profile from "./pages/Profile";
+
+function App() {
+  return (
+    <Router basename="/Talentia">
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/map" element={<Map />} />
+        <Route path="/task/:id" element={<TaskScreen />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+

@@ -206,20 +206,31 @@ Write your COMPLETE response now:`;
       console.warn(`Finish reason was: ${finishReason}`);
       
       // Try to complete the incomplete sentence intelligently
-      const lastSpace = reply.lastIndexOf(' ');
-      if (lastSpace > 0) {
-        // Remove the incomplete last word and add a complete ending
-        const baseMessage = reply.substring(0, lastSpace);
-        if (isAskingForHelp) {
-          reply = baseMessage + "! Let's try counting step by step together! 🦕";
-        } else if (isCorrectAnswer) {
-          reply = baseMessage + "! Great job! 🎉🦕";
-        } else {
-          reply = baseMessage + "! Let's think about this together! 🦕";
+      // Remove trailing incomplete words and punctuation
+      let cleanedReply = reply.trim();
+      
+      // Remove trailing commas, and incomplete words like "and", "the", "a", "or", "but"
+      const incompleteWords = [' and', ' the', ' a', ' an', ' or', ' but', ' with', ' to', ' of', ' in', ' on', ' at'];
+      for (const word of incompleteWords) {
+        if (cleanedReply.endsWith(word + ',')) {
+          cleanedReply = cleanedReply.substring(0, cleanedReply.length - word.length - 1);
+          break;
+        } else if (cleanedReply.endsWith(word)) {
+          cleanedReply = cleanedReply.substring(0, cleanedReply.length - word.length);
+          break;
         }
+      }
+      
+      // Remove trailing comma if present
+      cleanedReply = cleanedReply.replace(/,\s*$/, '');
+      
+      // Now add the proper ending
+      if (isAskingForHelp) {
+        reply = cleanedReply + "! Let's try counting step by step together! 🦕";
+      } else if (isCorrectAnswer) {
+        reply = cleanedReply + "! Great job! 🎉🦕";
       } else {
-        // No space found, just append a friendly ending
-        reply = reply.trim() + "! Let's try again! 🦕";
+        reply = cleanedReply + "! Let's think about this together! 🦕";
       }
       console.log(`Completed reply: "${reply}"`);
     }

@@ -6,7 +6,7 @@
     "node": ">=18.x"
   },
   "scripts": {
-    "build:docs": "cd ai-kids && npm run build && cd .. && node deploy-docs.js",
+    "build:docs": "cd ai-kids && npm run build && cd .. && node deploy-docs.cjs",
     "deploy:docs": "npm run build:docs && git add docs && git commit -m 'Update GitHub Pages' && git push origin main"
   },
   "dependencies": {}

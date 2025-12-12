@@ -9,7 +9,7 @@ import SpecialMode from "./pages/SpecialMode";
 
 function App() {
   return (
-    <Router basename="/Talentia">
+    <Router basename="/Talentia1.0">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/map" element={<Map />} />

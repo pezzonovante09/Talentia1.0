@@ -7,28 +7,29 @@ function setCORSHeaders(res) {
 }
 
 export default async function handler(req, res) {
-  try {
-    // Log for debugging (check Vercel function logs)
-    console.log(`[${new Date().toISOString()}] ${req.method} request to /api/chat`);
-    
-    // Handle OPTIONS preflight request FIRST - before anything else
-    if (req.method === "OPTIONS") {
-      console.log("Handling OPTIONS preflight request");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      res.setHeader("Access-Control-Max-Age", "86400");
-      return res.status(200).send("");
-    }
-    
-    // Set CORS headers for ALL other requests
+  // Handle OPTIONS preflight request FIRST - before anything else
+  // This must be handled BEFORE any try-catch to ensure headers are always set
+  if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS preflight request");
     setCORSHeaders(res);
+    res.status(200);
+    res.end();
+    return;
+  }
 
-    // Only allow POST
-    if (req.method !== "POST") {
-      res.status(405).json({ reply: "Method not allowed" });
-      return;
-    }
+  // Set CORS headers for all other requests
+  setCORSHeaders(res);
+
+  // Only allow POST for actual requests
+  if (req.method !== "POST") {
+    res.status(405).json({ reply: "Method not allowed" });
+    return;
+  }
+
+  try {
+    // Log for debugging
+    console.log(`[${new Date().toISOString()}] POST request to /api/chat`);
+
     const { message = "", task = "", correct = "", history = [] } = req.body;
 
     // Normalize message and correct answer for comparison
@@ -97,6 +98,8 @@ Tali's response (1-2 short sentences, kid-friendly):`;
     });
 
     if (!aiRes.ok) {
+      const errorText = await aiRes.text();
+      console.error(`Gemini API error: ${aiRes.status} - ${errorText}`);
       throw new Error(`Gemini API error: ${aiRes.status}`);
     }
 
@@ -125,21 +128,9 @@ Tali's response (1-2 short sentences, kid-friendly):`;
   } catch (err) {
     console.error("Backend error:", err);
     console.error("Error stack:", err.stack);
+    // Ensure CORS headers are set even on error
     setCORSHeaders(res);
     res.status(500).json({ reply: "Tali is thinking... try again! 🦕" });
     return;
   }
-  } catch (outerErr) {
-    // Catch any errors in the outer handler (like CORS setup)
-    console.error("Outer handler error:", outerErr);
-    console.error("Error stack:", outerErr.stack);
-    try {
-      setCORSHeaders(res);
-      res.status(500).json({ reply: "Tali is confused... try again! 🦕" });
-    } catch (finalErr) {
-      console.error("Final error:", finalErr);
-    }
-    return;
-  }
 }
-

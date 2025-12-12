@@ -84,37 +84,65 @@ Tali's response (1-2 short sentences, kid-friendly):`;
       });
     }
 
-    // Use gemini-pro which is more stable, or try gemini-1.5-flash-latest
-    const modelName = "gemini-pro"; // Fallback to gemini-pro if 1.5-flash doesn't work
-    const url =
-      `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=` +
-      process.env.GEMINI_API_KEY;
+    // Try different model names - v1 API requires specific model names
+    const modelsToTry = [
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash", 
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-pro"
+    ];
     
-    console.log(`Calling Gemini API with model: ${modelName}`);
+    let aiRes = null;
+    let lastError = null;
+    let modelUsed = null;
+    
+    // Try each model until one works
+    for (const modelName of modelsToTry) {
+      try {
+        const url =
+          `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=` +
+          process.env.GEMINI_API_KEY;
+        
+        console.log(`Trying Gemini API with model: ${modelName}`);
+        
+        aiRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { 
+              temperature: 0.8, 
+              maxOutputTokens: 40,
+              topP: 0.9
+            }
+          }),
+        });
 
-    const aiRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.8, 
-          maxOutputTokens: 40,
-          topP: 0.9
+        if (aiRes.ok) {
+          modelUsed = modelName;
+          console.log(`Successfully using model: ${modelName}`);
+          break;
+        } else {
+          const errorText = await aiRes.text();
+          console.log(`Model ${modelName} failed: ${aiRes.status}`);
+          lastError = { status: aiRes.status, text: errorText };
+          // Continue to next model
         }
-      }),
-    });
+      } catch (err) {
+        console.error(`Error trying model ${modelName}:`, err);
+        lastError = { error: err.message };
+        // Continue to next model
+      }
+    }
 
-    if (!aiRes.ok) {
-      const errorText = await aiRes.text();
-      console.error(`Gemini API error: ${aiRes.status}`);
-      console.error(`Error response: ${errorText}`);
-      console.error(`URL used: ${url.replace(process.env.GEMINI_API_KEY, 'HIDDEN')}`);
+    // If all models failed, return error
+    if (!aiRes || !aiRes.ok) {
+      console.error(`All models failed. Last error:`, lastError);
       setCORSHeaders(res);
       return res.status(500).json({ 
         reply: "Tali is thinking... try again! 🦕",
-        error: `Gemini API error: ${aiRes.status}`,
-        details: errorText.substring(0, 200) // First 200 chars of error
+        error: `Gemini API error: All models failed`,
+        details: lastError ? JSON.stringify(lastError).substring(0, 200) : "Unknown error"
       });
     }
 

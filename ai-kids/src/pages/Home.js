@@ -9,7 +9,12 @@ export default function Home() {
 
   return (
     <ScreenSection variant="meadow">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex gap-2">
+        <Link to="/special">
+          <button className="bg-blue-500 px-4 py-2 rounded-xl shadow text-white font-semibold hover:bg-blue-600">
+            Special Mode
+          </button>
+        </Link>
         <Link to="/profile">
           <button className="bg-white px-4 py-2 rounded-xl shadow text-emerald-700 font-semibold">
             Profile

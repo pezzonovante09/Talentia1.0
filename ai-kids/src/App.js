@@ -5,6 +5,7 @@ import TaskScreen from "./pages/TaskScreen";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
+import SpecialMode from "./pages/SpecialMode";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/special" element={<SpecialMode />} />
       </Routes>
     </Router>
   );

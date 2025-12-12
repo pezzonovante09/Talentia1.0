@@ -7,20 +7,21 @@ function shuffle(arr) {
 /**
  * Generate addition task with adaptive difficulty
  * @param {string} modifier - "easier", "neutral", or "harder"
+ * @param {boolean} isIslands4to6 - true if this is for islands 4-6
  */
-function generateAdditionTask(modifier = "neutral") {
+function generateAdditionTask(modifier = "neutral", isIslands4to6 = false) {
   let a, b;
   
   if (modifier === "easier") {
     // Easier: small numbers 1-10
     a = Math.floor(Math.random() * 10) + 1;
     b = Math.floor(Math.random() * 10) + 1;
-  } else if (modifier === "harder") {
-    // Harder: much larger numbers 30-80
+  } else if (modifier === "harder" && isIslands4to6) {
+    // Harder on islands 4-6: much larger numbers 30-80
     a = Math.floor(Math.random() * 51) + 30; // 30-80
     b = Math.floor(Math.random() * 51) + 30; // 30-80
   } else {
-    // Neutral: medium numbers 1-30
+    // Neutral or harder on islands 1-3: medium numbers 1-30
     a = Math.floor(Math.random() * 30) + 1;
     b = Math.floor(Math.random() * 30) + 1;
   }
@@ -55,8 +56,9 @@ function generateAdditionTask(modifier = "neutral") {
 /**
  * Generate comparison task with adaptive difficulty
  * @param {string} modifier - "easier", "neutral", or "harder"
+ * @param {boolean} isIslands4to6 - true if this is for islands 4-6
  */
-function generateCompareTask(modifier = "neutral") {
+function generateCompareTask(modifier = "neutral", isIslands4to6 = false) {
   let left, right;
   
   if (modifier === "easier") {
@@ -69,8 +71,8 @@ function generateCompareTask(modifier = "neutral") {
     if (Math.random() < 0.5) {
       [left, right] = [right, left];
     }
-  } else if (modifier === "harder") {
-    // Harder: very small difference with larger numbers (e.g., 45 vs 46, 67 vs 68)
+  } else if (modifier === "harder" && isIslands4to6) {
+    // Harder on islands 4-6: very small difference with larger numbers (e.g., 45 vs 46, 67 vs 68)
     const base = Math.floor(Math.random() * 40) + 30; // 30-69
     left = base;
     right = base + 1; // Difference of 1
@@ -78,7 +80,7 @@ function generateCompareTask(modifier = "neutral") {
       [left, right] = [right, left];
     }
   } else {
-    // Neutral: medium difference
+    // Neutral or harder on islands 1-3: medium difference
     left = Math.floor(Math.random() * 15) + 2; // 2-16
     do {
       right = Math.floor(Math.random() * 15) + 2; // 2-16
@@ -152,8 +154,9 @@ function generateOddTask(modifier = "neutral") {
  * Generate a task based on level and difficulty modifier
  * @param {number} level - Base level (1-3)
  * @param {string} modifier - "easier", "neutral", or "harder"
+ * @param {boolean} isIslands4to6 - true if this is for islands 4-6
  */
-export function generateTaskByLevel(level, modifier = "neutral") {
+export function generateTaskByLevel(level, modifier = "neutral", isIslands4to6 = false) {
   // Determine task type based on level
   let taskType;
   
@@ -177,9 +180,9 @@ export function generateTaskByLevel(level, modifier = "neutral") {
   
   // Generate task based on type
   if (taskType === "add") {
-    return generateAdditionTask(modifier);
+    return generateAdditionTask(modifier, isIslands4to6);
   } else if (taskType === "compare") {
-    return generateCompareTask(modifier);
+    return generateCompareTask(modifier, isIslands4to6);
   } else {
     return generateOddTask(modifier);
   }

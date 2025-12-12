@@ -45,7 +45,11 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     setStep(0);
     setMistakes(0);
     setLockedOption(null);
+    setSessionFinished(false);
   }, [currentLevel, difficultyModifier]);
+
+  // Track if session is finished to prevent showing 4th task
+  const [sessionFinished, setSessionFinished] = useState(false);
 
   // Generate 3 tasks where each is progressively harder:
   // Task 1: Easy (level 1)
@@ -57,12 +61,15 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       return [];
     }
     
+    // Check if this is islands 4-6
+    const isIslands4to6 = islandId && islandId >= 4;
+    
     // For islands 4-6 with harder difficulty, increase base level
     let baseLevel1 = 1;
     let baseLevel2 = 2;
     let baseLevel3 = 3;
     
-    if (islandId && islandId >= 4 && difficultyModifier === "harder") {
+    if (isIslands4to6 && difficultyModifier === "harder") {
       // Make islands 4-6 significantly harder
       baseLevel1 = 2; // Start from medium
       baseLevel2 = 3; // Medium becomes hard
@@ -70,18 +77,21 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     }
     
     // Each task is progressively harder
-    const task1 = generateTaskByLevel(baseLevel1, difficultyModifier); // Easy/Medium
-    const task2 = generateTaskByLevel(baseLevel2, difficultyModifier); // Medium/Hard
-    const task3 = generateTaskByLevel(baseLevel3, difficultyModifier); // Hard
+    const task1 = generateTaskByLevel(baseLevel1, difficultyModifier, isIslands4to6); // Easy/Medium
+    const task2 = generateTaskByLevel(baseLevel2, difficultyModifier, isIslands4to6); // Medium/Hard
+    const task3 = generateTaskByLevel(baseLevel3, difficultyModifier, isIslands4to6); // Hard
     
     return [task1, task2, task3];
   }, [currentLevel, difficultyModifier, profile, islandId]);
 
-  // Only show task if step is within bounds (0, 1, or 2) - prevent showing 4th task
-  const q = step < 3 && step < tasks.length ? tasks[step] : null;
+  // Only show task if step is within bounds and session not finished - prevent showing 4th task
+  const q = !sessionFinished && step < 3 && step < tasks.length ? tasks[step] : null;
 
   function finishSession() {
     if (!profile) return;
+    
+    // Mark session as finished immediately to prevent showing 4th task
+    setSessionFinished(true);
     
     // Update profile with adaptive difficulty
     const updatedProfile = updateProfileAfterSession(mistakes);
@@ -94,7 +104,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
   }
 
   function handleAnswer(option) {
-    if (!q) return; // Safety check
+    if (!q || sessionFinished) return; // Safety check - don't process if session finished
     
     const correct = option === q.correct;
 

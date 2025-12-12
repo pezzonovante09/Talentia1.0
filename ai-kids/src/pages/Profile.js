@@ -13,7 +13,7 @@ export default function Profile() {
   }, []);
 
   function handleResetStats() {
-    if (!window.confirm("Вы уверены, что хотите сбросить всю статистику? Это действие нельзя отменить.")) {
+    if (!window.confirm("Are you sure you want to reset all statistics? This action cannot be undone.")) {
       return;
     }
     
@@ -43,7 +43,7 @@ export default function Profile() {
     localStorage.setItem("progress", JSON.stringify(defaultProgress));
     
     setProfile(defaultProfile);
-    alert("Статистика сброшена!");
+    alert("Statistics reset!");
   }
 
   if (!profile)
@@ -70,7 +70,7 @@ export default function Profile() {
               <li key={a}>🏅 {a}</li>
             ))
           ) : (
-            <li className="text-gray-500">Пока нет достижений</li>
+            <li className="text-gray-500">No achievements yet</li>
           )}
         </ul>
 
@@ -79,7 +79,7 @@ export default function Profile() {
             onClick={handleResetStats}
             className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl shadow text-white font-semibold transition"
           >
-            Сбросить статистику
+            Reset Statistics
           </button>
         </div>
       </div>

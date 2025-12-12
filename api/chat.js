@@ -77,12 +77,20 @@ Tali's response (1-2 short sentences, kid-friendly):`;
     // Check if API key is set
     if (!process.env.GEMINI_API_KEY) {
       console.error("GEMINI_API_KEY is not set!");
-      throw new Error("GEMINI_API_KEY environment variable is missing");
+      setCORSHeaders(res);
+      return res.status(500).json({ 
+        reply: "Tali is thinking... try again! 🦕",
+        error: "GEMINI_API_KEY environment variable is missing"
+      });
     }
 
+    // Use gemini-pro which is more stable, or try gemini-1.5-flash-latest
+    const modelName = "gemini-pro"; // Fallback to gemini-pro if 1.5-flash doesn't work
     const url =
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" +
+      `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=` +
       process.env.GEMINI_API_KEY;
+    
+    console.log(`Calling Gemini API with model: ${modelName}`);
 
     const aiRes = await fetch(url, {
       method: "POST",
@@ -99,8 +107,15 @@ Tali's response (1-2 short sentences, kid-friendly):`;
 
     if (!aiRes.ok) {
       const errorText = await aiRes.text();
-      console.error(`Gemini API error: ${aiRes.status} - ${errorText}`);
-      throw new Error(`Gemini API error: ${aiRes.status}`);
+      console.error(`Gemini API error: ${aiRes.status}`);
+      console.error(`Error response: ${errorText}`);
+      console.error(`URL used: ${url.replace(process.env.GEMINI_API_KEY, 'HIDDEN')}`);
+      setCORSHeaders(res);
+      return res.status(500).json({ 
+        reply: "Tali is thinking... try again! 🦕",
+        error: `Gemini API error: ${aiRes.status}`,
+        details: errorText.substring(0, 200) // First 200 chars of error
+      });
     }
 
     const data = await aiRes.json();

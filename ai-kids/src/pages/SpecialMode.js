@@ -10,6 +10,7 @@ export default function SpecialMode() {
   const [lockedOption, setLockedOption] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [levelMistakes, setLevelMistakes] = useState(0); // Mistakes in current level
+  const timeoutRef = React.useRef(null);
 
   // Generate 3 tasks for current level
   const tasks = useMemo(() => {
@@ -21,19 +22,38 @@ export default function SpecialMode() {
     ];
   }, [level]);
 
-  const currentTask = tasks[step];
+  const currentTask = tasks && tasks.length > 0 && step < tasks.length ? tasks[step] : null;
 
   // Reset when starting new level
   useEffect(() => {
-    if (step === 0 && level > 1) {
-      setLevelMistakes(0);
-      setLockedOption(null);
-      setShowSuccess(false);
+    // Only reset when level changes
+    setLevelMistakes(0);
+    setLockedOption(null);
+    setShowSuccess(false);
+    // Clear any pending timeouts
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
-  }, [step, level]);
+  }, [level]); // Only depend on level, not step
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   function handleAnswer(option) {
-    if (lockedOption !== null) return;
+    if (lockedOption !== null || !currentTask) return;
+
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
     const correct = option === currentTask.correct;
 
@@ -43,15 +63,16 @@ export default function SpecialMode() {
       setMistakes(m => m + 1);
       setLevelMistakes(m => m + 1);
       // Visual feedback for wrong answer
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setLockedOption(null);
+        timeoutRef.current = null;
       }, 1500);
       return;
     }
 
     // Success feedback
     setShowSuccess(true);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       setShowSuccess(false);
       setLockedOption(null);
       
@@ -72,6 +93,7 @@ export default function SpecialMode() {
           setMistakes(0);
         }
       }
+      timeoutRef.current = null;
     }, 2000);
   }
 

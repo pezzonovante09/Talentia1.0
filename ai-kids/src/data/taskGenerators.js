@@ -16,9 +16,9 @@ function generateAdditionTask(modifier = "neutral") {
     a = Math.floor(Math.random() * 10) + 1;
     b = Math.floor(Math.random() * 10) + 1;
   } else if (modifier === "harder") {
-    // Harder: larger numbers 20-50
-    a = Math.floor(Math.random() * 31) + 20; // 20-50
-    b = Math.floor(Math.random() * 31) + 20; // 20-50
+    // Harder: much larger numbers 30-80
+    a = Math.floor(Math.random() * 51) + 30; // 30-80
+    b = Math.floor(Math.random() * 51) + 30; // 30-80
   } else {
     // Neutral: medium numbers 1-30
     a = Math.floor(Math.random() * 30) + 1;
@@ -70,8 +70,8 @@ function generateCompareTask(modifier = "neutral") {
       [left, right] = [right, left];
     }
   } else if (modifier === "harder") {
-    // Harder: small difference (e.g., 14 vs 15, 20 vs 21)
-    const base = Math.floor(Math.random() * 20) + 10; // 10-29
+    // Harder: very small difference with larger numbers (e.g., 45 vs 46, 67 vs 68)
+    const base = Math.floor(Math.random() * 40) + 30; // 30-69
     left = base;
     right = base + 1; // Difference of 1
     if (Math.random() < 0.5) {

@@ -51,21 +51,34 @@ export default function Task({ level = null, onFinish, islandId = null }) {
   // Task 1: Easy (level 1)
   // Task 2: Medium (level 2)
   // Task 3: Hard (level 3)
+  // For islands 4-6 with "harder" modifier, make them even harder
   const tasks = useMemo(() => {
     if (!profile || currentLevel < 1) {
       return [];
     }
     
+    // For islands 4-6 with harder difficulty, increase base level
+    let baseLevel1 = 1;
+    let baseLevel2 = 2;
+    let baseLevel3 = 3;
+    
+    if (islandId && islandId >= 4 && difficultyModifier === "harder") {
+      // Make islands 4-6 significantly harder
+      baseLevel1 = 2; // Start from medium
+      baseLevel2 = 3; // Medium becomes hard
+      baseLevel3 = 3; // Hard stays hard but with harder modifier
+    }
+    
     // Each task is progressively harder
-    const task1 = generateTaskByLevel(1, difficultyModifier); // Easy
-    const task2 = generateTaskByLevel(2, difficultyModifier); // Medium
-    const task3 = generateTaskByLevel(3, difficultyModifier); // Hard
+    const task1 = generateTaskByLevel(baseLevel1, difficultyModifier); // Easy/Medium
+    const task2 = generateTaskByLevel(baseLevel2, difficultyModifier); // Medium/Hard
+    const task3 = generateTaskByLevel(baseLevel3, difficultyModifier); // Hard
     
     return [task1, task2, task3];
-  }, [currentLevel, difficultyModifier, profile]);
+  }, [currentLevel, difficultyModifier, profile, islandId]);
 
-  // Only show task if step is within bounds (0, 1, or 2)
-  const q = step < tasks.length ? tasks[step] : null;
+  // Only show task if step is within bounds (0, 1, or 2) - prevent showing 4th task
+  const q = step < 3 && step < tasks.length ? tasks[step] : null;
 
   function finishSession() {
     if (!profile) return;
@@ -93,11 +106,11 @@ export default function Task({ level = null, onFinish, islandId = null }) {
       return;
     }
 
-    // If this is the last task (step 2), finish session and generate new tasks
+    // If this is the last task (step 2), finish session immediately
+    // Don't show 4th task - finish right away
     if (step === 2) {
-      setTimeout(() => {
-        finishSession();
-      }, 400);
+      // Immediately finish and navigate - don't wait
+      finishSession();
     } else {
       // Move to next task
       setTimeout(() => {

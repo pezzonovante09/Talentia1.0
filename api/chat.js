@@ -71,12 +71,24 @@ export default async function handler(req, res) {
     // Build task-specific hint guidance
     let taskTypeGuidance = "";
     if (taskType === "add" || taskType === "compute") {
-      taskTypeGuidance = "For addition/subtraction tasks, give hints like: 'Try counting from the bigger number upward' or 'Count each number carefully, one at a time' or 'Start with the first number, then add the second'";
+      taskTypeGuidance = "For addition tasks, give hints like: 'Try counting from the bigger number upward' or 'Count each number carefully, one at a time' or 'Start with the first number, then add the second'";
+    } else if (taskType === "subtract") {
+      taskTypeGuidance = "For subtraction tasks, give hints like: 'Start with the bigger number and count backwards' or 'Take away the smaller number from the bigger one' or 'Count how many are left after taking away'";
+    } else if (taskType === "multiply") {
+      taskTypeGuidance = "For multiplication tasks, give hints like: 'Think of groups! If you have 3 groups of 4, count: 4, 8, 12' or 'Multiplication is like adding the same number many times' or 'Try counting in groups'";
     } else if (taskType === "compare") {
       taskTypeGuidance = "For comparison tasks, give hints like: 'Look which side has more items' or 'Count the items on each side carefully' or 'Which number is bigger?'";
+    } else if (taskType === "sequence") {
+      taskTypeGuidance = "For sequence tasks, give hints like: 'Look at the pattern! What number comes after each one?' or 'Count the difference between numbers' or 'See if the numbers are going up by the same amount'";
     } else if (taskType === "odd") {
       taskTypeGuidance = "For odd-one-out tasks, give hints like: 'Look for the shape that doesn't follow the pattern' or 'Which one looks different from the others?' or 'Count how many of each shape you see'";
     }
+    
+    // Check if child is asking how to solve (explanation request)
+    const explanationKeywords = ["how", "how do", "how to", "explain", "show me", "teach me", "help me understand", "what do i do", "what should i do"];
+    const isAskingForExplanation = explanationKeywords.some(keyword => 
+      normalizedMessage.includes(keyword)
+    );
     
     // Build adaptive prompt
     const prompt = `You are Tali the Dino, a kind, friendly, and encouraging helper for kids ages 5-8. You are always supportive and never give up on helping!
@@ -87,9 +99,10 @@ CRITICAL RULES:
 3. NEVER reveal the correct answer "${correct}" - you can ONLY give helpful hints that guide the child.
 4. NEVER repeat the exact same response twice. Each hint must be DIFFERENT and creative.
 5. If the child says "${correct}" (the correct answer), celebrate warmly: "Wow! You got it! 🎉 You're amazing!" - NO hints needed, just praise!
-6. If the child asks for help (says "help", "hint", "idk", "don't know", "stuck", "what", "how"), give a COMPLETE, friendly, actionable hint based on the task type WITHOUT giving the answer.
-7. If the child gives a wrong answer, be encouraging: "Good try! Let's think about it differently..." then give a helpful hint.
-8. Always end on a positive, encouraging note.
+6. If the child asks for help (says "help", "hint", "idk", "don't know", "stuck", "what"), give a COMPLETE, friendly, actionable hint based on the task type WITHOUT giving the answer.
+7. If the child asks HOW to solve (says "how", "how do", "how to", "explain", "show me", "teach me"), give a STEP-BY-STEP explanation of the method WITHOUT revealing the answer. Example: "For addition, start with the first number and count up by the second number! Like if it's 5 + 3, start at 5 and count: 6, 7, 8!"
+8. If the child gives a wrong answer, be encouraging: "Good try! Let's think about it differently..." then give a helpful hint.
+9. Always end on a positive, encouraging note.
 
 CURRENT CONTEXT:
 - Task: "${task}"
@@ -112,8 +125,9 @@ IMPORTANT: Review the previous conversation above. NEVER repeat the exact same p
 CHILD'S MESSAGE: "${message}"
 
 ${isCorrectAnswer ? "🎉 SUCCESS! The child just gave the CORRECT answer! Celebrate with excitement and praise warmly. NO hints needed - just praise!" : ""}
-${isAskingForHelp ? "💡 HELP REQUESTED: Give a COMPLETE, friendly, unique hint that guides them without revealing the answer. Make it DIFFERENT from previous hints!" : ""}
-${!isCorrectAnswer && !isAskingForHelp ? "💭 The child is trying. Be encouraging and give a COMPLETE helpful hint to guide them." : ""}
+${isAskingForExplanation ? "📚 EXPLANATION REQUESTED: The child wants to know HOW to solve this type of problem. Give a STEP-BY-STEP explanation of the method (e.g., 'For addition, start with the first number and count up!'). Explain the process clearly but DON'T give the answer!" : ""}
+${isAskingForHelp && !isAskingForExplanation ? "💡 HELP REQUESTED: Give a COMPLETE, friendly, unique hint that guides them without revealing the answer. Make it DIFFERENT from previous hints!" : ""}
+${!isCorrectAnswer && !isAskingForHelp && !isAskingForExplanation ? "💭 The child is trying. Be encouraging and give a COMPLETE helpful hint to guide them." : ""}
 
 Tali's response (1-2 COMPLETE sentences, warm, encouraging, ALWAYS finish your thought, NEVER repeat previous responses):
 

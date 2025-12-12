@@ -75,9 +75,19 @@ export default function Profile() {
         </ul>
 
         <div className="mt-6 space-y-3">
+          <Link to="/analytics">
+            <button className="w-full bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl shadow text-white font-semibold transition">
+              View Error Analytics
+            </button>
+          </Link>
+          <Link to="/reports">
+            <button className="w-full bg-purple-500 hover:bg-purple-600 px-6 py-3 rounded-xl shadow text-white font-semibold transition">
+              Parent Reports
+            </button>
+          </Link>
           <button
             onClick={handleResetStats}
-            className="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl shadow text-white font-semibold transition"
+            className="w-full bg-red-500 hover:bg-red-600 px-6 py-3 rounded-xl shadow text-white font-semibold transition"
           >
             Reset Statistics
           </button>

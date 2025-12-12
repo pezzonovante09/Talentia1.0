@@ -98,6 +98,155 @@ function generateCompareTask(modifier = "neutral", isIslands4to6 = false) {
 }
 
 /**
+ * Generate subtraction task with adaptive difficulty
+ * @param {string} modifier - "easier", "neutral", or "harder"
+ * @param {boolean} isIslands4to6 - true if this is for islands 4-6
+ */
+function generateSubtractionTask(modifier = "neutral", isIslands4to6 = false) {
+  let a, b;
+  
+  if (modifier === "easier") {
+    // Easier: small numbers, result is positive
+    b = Math.floor(Math.random() * 5) + 1; // 1-5
+    a = Math.floor(Math.random() * 5) + b + 1; // b+1 to b+5
+  } else if (modifier === "harder" && isIslands4to6) {
+    // Harder on islands 4-6: larger numbers
+    b = Math.floor(Math.random() * 30) + 20; // 20-49
+    a = Math.floor(Math.random() * 20) + b + 1; // b+1 to b+20
+  } else {
+    // Neutral or harder on islands 1-3: medium numbers
+    b = Math.floor(Math.random() * 15) + 1; // 1-15
+    a = Math.floor(Math.random() * 15) + b + 1; // b+1 to b+15
+  }
+  
+  const result = a - b;
+  
+  // Adjust distractor difficulty
+  let distractorRange;
+  if (modifier === "easier") {
+    distractorRange = [1, 2];
+  } else if (modifier === "harder") {
+    distractorRange = [2, 5, 7];
+  } else {
+    distractorRange = [2, 3, 5];
+  }
+  
+  const options = [
+    result,
+    result + distractorRange[0],
+    Math.max(1, result - distractorRange[0]),
+    result + (distractorRange[1] || distractorRange[0])
+  ];
+  
+  return {
+    type: "subtract",
+    question: `How many is ${a} - ${b}?`,
+    correct: result,
+    options: shuffle(options),
+  };
+}
+
+/**
+ * Generate multiplication task (only for hard level)
+ * @param {string} modifier - "easier", "neutral", or "harder"
+ * @param {boolean} isIslands4to6 - true if this is for islands 4-6
+ */
+function generateMultiplicationTask(modifier = "neutral", isIslands4to6 = false) {
+  let a, b;
+  
+  if (modifier === "easier") {
+    // Easier: small multiplication tables (2x2, 2x3, 3x2, etc.)
+    a = Math.floor(Math.random() * 3) + 2; // 2-4
+    b = Math.floor(Math.random() * 3) + 2; // 2-4
+  } else if (modifier === "harder" && isIslands4to6) {
+    // Harder on islands 4-6: larger numbers
+    a = Math.floor(Math.random() * 5) + 5; // 5-9
+    b = Math.floor(Math.random() * 5) + 5; // 5-9
+  } else {
+    // Neutral or harder on islands 1-3: medium numbers
+    a = Math.floor(Math.random() * 4) + 2; // 2-5
+    b = Math.floor(Math.random() * 4) + 2; // 2-5
+  }
+  
+  const result = a * b;
+  
+  // Adjust distractor difficulty
+  let distractorRange;
+  if (modifier === "easier") {
+    distractorRange = [a, b, a + b];
+  } else if (modifier === "harder") {
+    distractorRange = [result + a, result + b, result - a];
+  } else {
+    distractorRange = [result + 2, result - 2, a + b];
+  }
+  
+  const options = [
+    result,
+    distractorRange[0],
+    Math.max(1, distractorRange[1]),
+    distractorRange[2] || result + 3
+  ];
+  
+  return {
+    type: "multiply",
+    question: `How many is ${a} × ${b}?`,
+    correct: result,
+    options: shuffle(options),
+  };
+}
+
+/**
+ * Generate sequence task (find the pattern)
+ * @param {string} modifier - "easier", "neutral", or "harder"
+ */
+function generateSequenceTask(modifier = "neutral") {
+  let sequence, correct, question;
+  
+  if (modifier === "easier") {
+    // Easier: simple counting sequences
+    const start = Math.floor(Math.random() * 5) + 1; // 1-5
+    sequence = [start, start + 1, start + 2, "?"];
+    correct = start + 3;
+    question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+  } else if (modifier === "harder") {
+    // Harder: skip counting or patterns
+    const pattern = Math.random() < 0.5 ? "skip2" : "skip3";
+    if (pattern === "skip2") {
+      const start = Math.floor(Math.random() * 5) + 2; // 2-6
+      sequence = [start, start + 2, start + 4, "?"];
+      correct = start + 6;
+      question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+    } else {
+      const start = Math.floor(Math.random() * 5) + 3; // 3-7
+      sequence = [start, start + 3, start + 6, "?"];
+      correct = start + 9;
+      question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+    }
+  } else {
+    // Neutral: simple addition pattern
+    const start = Math.floor(Math.random() * 5) + 1; // 1-5
+    const add = Math.floor(Math.random() * 3) + 2; // 2-4
+    sequence = [start, start + add, start + add * 2, "?"];
+    correct = start + add * 3;
+    question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+  }
+  
+  // Generate distractors
+  const distractors = [
+    correct + 1,
+    correct - 1,
+    correct + (modifier === "easier" ? 2 : 3)
+  ];
+  
+  return {
+    type: "sequence",
+    question,
+    correct,
+    options: shuffle([correct, ...distractors]),
+  };
+}
+
+/**
  * Generate odd-one-out task with adaptive difficulty
  * @param {string} modifier - "easier", "neutral", or "harder"
  */
@@ -161,18 +310,33 @@ export function generateTaskByLevel(level, modifier = "neutral", isIslands4to6 =
   let taskType;
   
   if (level <= 1) {
-    // Level 1: Only addition
-    taskType = "add";
+    // Level 1: Addition and simple subtraction
+    taskType = Math.random() < 0.7 ? "add" : "subtract";
   } else if (level === 2) {
-    // Level 2: Mix of addition and comparison
-    taskType = Math.random() < 0.5 ? "add" : "compare";
-  } else {
-    // Level 3: Mix of all types
+    // Level 2: Mix of addition, subtraction, comparison, and sequences
     const rand = Math.random();
-    if (rand < 0.4) {
+    if (rand < 0.3) {
       taskType = "add";
+    } else if (rand < 0.5) {
+      taskType = "subtract";
+    } else if (rand < 0.75) {
+      taskType = "compare";
+    } else {
+      taskType = "sequence";
+    }
+  } else {
+    // Level 3: Mix of all types including multiplication
+    const rand = Math.random();
+    if (rand < 0.25) {
+      taskType = "add";
+    } else if (rand < 0.4) {
+      taskType = "subtract";
+    } else if (rand < 0.55) {
+      taskType = "multiply"; // Multiplication for hard level
     } else if (rand < 0.7) {
       taskType = "compare";
+    } else if (rand < 0.85) {
+      taskType = "sequence";
     } else {
       taskType = "odd";
     }
@@ -181,8 +345,14 @@ export function generateTaskByLevel(level, modifier = "neutral", isIslands4to6 =
   // Generate task based on type
   if (taskType === "add") {
     return generateAdditionTask(modifier, isIslands4to6);
+  } else if (taskType === "subtract") {
+    return generateSubtractionTask(modifier, isIslands4to6);
+  } else if (taskType === "multiply") {
+    return generateMultiplicationTask(modifier, isIslands4to6);
   } else if (taskType === "compare") {
     return generateCompareTask(modifier, isIslands4to6);
+  } else if (taskType === "sequence") {
+    return generateSequenceTask(modifier);
   } else {
     return generateOddTask(modifier);
   }

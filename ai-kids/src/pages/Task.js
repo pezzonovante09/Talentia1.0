@@ -4,6 +4,7 @@ import ScreenSection from "../components/ScreenSection";
 import ChatPanel from "../components/ChatPanel";
 import { generateTaskByLevel } from "../data/taskGenerators";
 import { loadProfile, updateProfileAfterSession } from "../utils/profileManager";
+import { saveErrorRecord, saveSuccessRecord, saveSessionSummary } from "../utils/analytics";
 
 export default function Task({ level = null, onFinish, islandId = null }) {
   const [step, setStep] = useState(0);
@@ -106,6 +107,14 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     const updatedProfile = updateProfileAfterSession(mistakes);
     setProfile(updatedProfile);
     
+    // Save session summary to analytics
+    saveSessionSummary({
+      islandId: islandId,
+      mistakes: mistakes,
+      tasksCompleted: 3,
+      timestamp: new Date().toISOString()
+    });
+    
     // Call onFinish to navigate back to map
     if (typeof onFinish === "function") {
       onFinish(mistakes);
@@ -121,8 +130,26 @@ export default function Task({ level = null, onFinish, islandId = null }) {
 
     if (!correct) {
       setMistakes(m => m + 1);
+      // Save error to analytics
+      saveErrorRecord({
+        task: q.question,
+        taskType: q.type,
+        correctAnswer: q.correct,
+        userAnswer: option,
+        islandId: islandId,
+        timestamp: new Date().toISOString()
+      });
       setTimeout(() => setLockedOption(null), 700);
       return;
+    } else {
+      // Save success to analytics
+      saveSuccessRecord({
+        task: q.question,
+        taskType: q.type,
+        correctAnswer: q.correct,
+        islandId: islandId,
+        timestamp: new Date().toISOString()
+      });
     }
 
     // If this is the last task (step 2), finish session immediately
@@ -148,8 +175,8 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         <h2 className="text-2xl font-bold">Task {step + 1} of 3</h2>
         <p className="text-lg font-semibold">{q.question}</p>
 
-        {/* ADDITIONAL TASK TYPES HANDLE */}
-        {(q.type === "add" || q.type === "compute") && (
+        {/* TASK TYPES HANDLE */}
+        {(q.type === "add" || q.type === "subtract" || q.type === "multiply" || q.type === "sequence" || q.type === "compute") && (
           <div className="grid grid-cols-2 gap-3">
             {q.options.map(opt => (
               <button

@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import Map from "./pages/Map";
 import TaskScreen from "./pages/TaskScreen";
 import Profile from "./pages/Profile";
+import Analytics from "./pages/Analytics";
+import Reports from "./pages/Reports";
 
 function App() {
   return (
@@ -12,6 +14,8 @@ function App() {
         <Route path="/map" element={<Map />} />
         <Route path="/task/:id" element={<TaskScreen />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
     </Router>
   );

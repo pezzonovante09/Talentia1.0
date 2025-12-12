@@ -138,3 +138,19 @@ export function getRecentErrors(limit = 20) {
   return errors.slice(-limit).reverse();
 }
 
+/**
+ * Reset all analytics data
+ */
+export function resetAnalytics() {
+  try {
+    const defaultAnalytics = {
+      errorHistory: [],
+      taskTypeStats: {},
+      sessionHistory: []
+    };
+    localStorage.setItem(ANALYTICS_KEY, JSON.stringify(defaultAnalytics));
+  } catch (e) {
+    console.error("Error resetting analytics:", e);
+  }
+}
+

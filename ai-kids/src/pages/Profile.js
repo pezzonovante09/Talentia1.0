@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import ScreenSection from "../components/ScreenSection";
 import { Link } from "react-router-dom";
 import { loadProfile } from "../utils/profileManager";
+import { resetAnalytics } from "../utils/analytics";
 
 
 export default function Profile() {
@@ -42,8 +43,11 @@ export default function Profile() {
     };
     localStorage.setItem("progress", JSON.stringify(defaultProgress));
     
+    // Reset analytics (errors, task stats, session history)
+    resetAnalytics();
+    
     setProfile(defaultProfile);
-    alert("Statistics reset!");
+    alert("All statistics and error history have been reset!");
   }
 
   if (!profile)

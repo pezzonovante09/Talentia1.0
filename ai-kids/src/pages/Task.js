@@ -21,12 +21,20 @@ export default function Task({ level = null, onFinish }) {
     }
   }, [level]);
 
-  // create 3 tasks once per mount / level
-  const tasks = useMemo(() => [
-    generateTaskByLevel(currentLevel),
-    generateTaskByLevel(currentLevel),
-    generateTaskByLevel(currentLevel)
-  ], [currentLevel]);
+  // Get difficulty modifier from profile (determines if tasks should be easier/harder/neutral)
+  // This modifier was set based on the PREVIOUS session's performance
+  // For the first session, it will be "neutral"
+  const difficultyModifier = profile?.nextDifficultyModifier || "neutral";
+
+  // create 3 tasks once per mount / level with adaptive difficulty modifier
+  const tasks = useMemo(() => {
+    // Generate 3 tasks with variety - ensure we get different types if level allows
+    const task1 = generateTaskByLevel(currentLevel, difficultyModifier);
+    const task2 = generateTaskByLevel(currentLevel, difficultyModifier);
+    const task3 = generateTaskByLevel(currentLevel, difficultyModifier);
+    
+    return [task1, task2, task3];
+  }, [currentLevel, difficultyModifier]);
 
   const q = tasks[step];
 

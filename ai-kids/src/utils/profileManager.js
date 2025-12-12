@@ -38,7 +38,8 @@ function getDefaultProfile() {
     points: 0,
     achievements: [],
     lastThreeMistakes: [],
-    levelHistory: [1]
+    levelHistory: [1],
+    nextDifficultyModifier: "neutral" // "easier", "neutral", or "harder"
   };
 }
 
@@ -78,6 +79,21 @@ export function calculateAdaptiveLevel(currentLevel, mistakes, lastThreeMistakes
 }
 
 /**
+ * Determine difficulty modifier for next session based on mistakes
+ * @param {number} mistakes - Mistakes in current session
+ * @returns {string} "easier", "neutral", or "harder"
+ */
+export function calculateDifficultyModifier(mistakes) {
+  if (mistakes <= 1) {
+    return "harder"; // Doing well → make next session harder
+  } else if (mistakes >= 3) {
+    return "easier"; // Struggling → make next session easier
+  } else {
+    return "neutral"; // In between → keep neutral
+  }
+}
+
+/**
  * Update profile after session completion
  * @param {number} mistakes - Mistakes in completed session
  * @returns {object} Updated profile
@@ -91,7 +107,7 @@ export function updateProfileAfterSession(mistakes) {
   // Update last three mistakes history
   profile.lastThreeMistakes = [...profile.lastThreeMistakes, mistakes].slice(-3);
   
-  // Calculate new level
+  // Calculate new level (for tracking, but we use modifier for actual difficulty)
   const newLevel = calculateAdaptiveLevel(
     profile.level,
     mistakes,
@@ -100,6 +116,9 @@ export function updateProfileAfterSession(mistakes) {
   
   profile.level = newLevel;
   profile.levelHistory.push(newLevel);
+  
+  // Calculate difficulty modifier for NEXT session
+  profile.nextDifficultyModifier = calculateDifficultyModifier(mistakes);
   
   // Calculate points (more points for fewer mistakes)
   profile.points += Math.max(1, 5 - mistakes);

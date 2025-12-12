@@ -9,7 +9,7 @@ export default function TaskScreen() {
   const navigate = useNavigate();
 
   function handleFinish() {
-    // Unlock next island
+    // Unlock next island (but don't navigate - let user continue playing)
     const progress = JSON.parse(localStorage.getItem("progress")) || {
       island1: true,
       island2: false,
@@ -25,10 +25,8 @@ export default function TaskScreen() {
 
     localStorage.setItem("progress", JSON.stringify(progress));
 
-    // Go back to map
-    setTimeout(() => {
-      navigate("/map");
-    }, 1000);
+    // Don't navigate - tasks will regenerate automatically
+    // User can continue playing on the same island
   }
 
   // Don't pass level - let Task component use adaptive level from profile

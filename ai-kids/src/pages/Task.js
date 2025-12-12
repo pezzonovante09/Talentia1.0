@@ -26,15 +26,20 @@ export default function Task({ level = null, onFinish }) {
   // For the first session, it will be "neutral"
   const difficultyModifier = profile?.nextDifficultyModifier || "neutral";
 
-  // Reset session state when starting a new session
+  // Reset session state when starting a new session (level or modifier changes)
   useEffect(() => {
     setStep(0);
     setMistakes(0);
     setLockedOption(null);
+    setSessionKey(0); // Reset session key when level/modifier changes
   }, [currentLevel, difficultyModifier]);
+
+  // Track session number to regenerate tasks after each set of 3
+  const [sessionKey, setSessionKey] = useState(0);
 
   // create 3 tasks once per mount / level with adaptive difficulty modifier
   // Only generate tasks when profile is loaded and we have valid level/modifier
+  // Regenerate when sessionKey changes (after completing 3 tasks)
   const tasks = useMemo(() => {
     if (!profile || currentLevel < 1) {
       return [];
@@ -46,9 +51,10 @@ export default function Task({ level = null, onFinish }) {
     const task3 = generateTaskByLevel(currentLevel, difficultyModifier);
     
     return [task1, task2, task3];
-  }, [currentLevel, difficultyModifier, profile]);
+  }, [currentLevel, difficultyModifier, profile, sessionKey]);
 
-  const q = tasks[step];
+  // Only show task if step is within bounds (0, 1, or 2)
+  const q = step < tasks.length ? tasks[step] : null;
 
   function finishSession() {
     if (!profile) return;
@@ -56,11 +62,20 @@ export default function Task({ level = null, onFinish }) {
     // Update profile with adaptive difficulty
     const updatedProfile = updateProfileAfterSession(mistakes);
     setProfile(updatedProfile);
-
-    if (typeof onFinish === "function") onFinish();
+    
+    // Generate new tasks for next session by incrementing sessionKey
+    // This will trigger useMemo to regenerate tasks
+    setSessionKey(prev => prev + 1);
+    
+    // Reset step and mistakes for new session
+    setStep(0);
+    setMistakes(0);
+    setLockedOption(null);
   }
 
   function handleAnswer(option) {
+    if (!q) return; // Safety check
+    
     const correct = option === q.correct;
 
     setLockedOption(option);
@@ -71,13 +86,17 @@ export default function Task({ level = null, onFinish }) {
       return;
     }
 
-    if (step < 2) {
+    // If this is the last task (step 2), finish session and generate new tasks
+    if (step === 2) {
+      setTimeout(() => {
+        finishSession();
+      }, 400);
+    } else {
+      // Move to next task
       setTimeout(() => {
         setLockedOption(null);
         setStep(s => s + 1);
       }, 400);
-    } else {
-      finishSession();
     }
   }
 

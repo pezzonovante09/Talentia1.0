@@ -184,6 +184,7 @@ function generateColorSort(level = 1) {
     question: "Find the DIFFERENT color:",
     items: shuffle(items),
     correct: targetColor.emoji,
+    options: shuffle([targetColor.emoji, ...otherColors.map(c => c.emoji).slice(0, 3)]),
     targetColor: targetColor.name
   };
 }

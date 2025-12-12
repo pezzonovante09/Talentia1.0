@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import ScreenSection from "../components/ScreenSection";
 import { Link } from "react-router-dom";
 import { generateSpecialTask } from "../data/specialTaskGenerators";
@@ -10,26 +10,42 @@ export default function SpecialMode() {
   const [lockedOption, setLockedOption] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [levelMistakes, setLevelMistakes] = useState(0); // Mistakes in current level
-  const timeoutRef = React.useRef(null);
+  const timeoutRef = useRef(null);
 
   // Generate 3 tasks for current level
   const tasks = useMemo(() => {
     const difficulty = level === 1 ? "easy" : level === 2 ? "medium" : "hard";
-    return [
-      generateSpecialTask(difficulty, level),
-      generateSpecialTask(difficulty, level),
-      generateSpecialTask(difficulty, level)
-    ];
+    try {
+      const taskList = [
+        generateSpecialTask(difficulty, level),
+        generateSpecialTask(difficulty, level),
+        generateSpecialTask(difficulty, level)
+      ];
+      // Validate all tasks have required properties
+      return taskList.filter(task => 
+        task && 
+        task.type && 
+        task.question && 
+        task.correct !== undefined && 
+        Array.isArray(task.options) && 
+        task.options.length > 0
+      );
+    } catch (error) {
+      console.error("Error generating tasks:", error);
+      return [];
+    }
   }, [level]);
 
-  const currentTask = tasks && tasks.length > 0 && step < tasks.length ? tasks[step] : null;
+  const currentTask = tasks && tasks.length > 0 && step >= 0 && step < tasks.length ? tasks[step] : null;
 
   // Reset when starting new level
   useEffect(() => {
     // Only reset when level changes
+    // Use functional updates to avoid stale closures
     setLevelMistakes(0);
     setLockedOption(null);
     setShowSuccess(false);
+    setStep(0); // Reset step when level changes
     // Clear any pending timeouts
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -97,7 +113,34 @@ export default function SpecialMode() {
     }, 2000);
   }
 
-  if (!currentTask) return null;
+  // Early return if no valid task - use useMemo to prevent re-renders
+  const isValidTask = useMemo(() => {
+    return currentTask && 
+           currentTask.options && 
+           Array.isArray(currentTask.options) && 
+           currentTask.options.length > 0 &&
+           currentTask.correct !== undefined &&
+           currentTask.question;
+  }, [currentTask]);
+
+  if (!isValidTask) {
+    return (
+      <ScreenSection variant="meadow">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-xl">Loading task...</p>
+          <button 
+            onClick={() => {
+              setStep(0);
+              setLevel(1);
+            }}
+            className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded-lg"
+          >
+            Reset
+          </button>
+        </div>
+      </ScreenSection>
+    );
+  }
 
   return (
     <ScreenSection variant="meadow">
@@ -166,10 +209,10 @@ export default function SpecialMode() {
             </p>
             
             {/* Visual representation for addition/subtraction */}
-            {(currentTask.type === "add" || currentTask.type === "subtract") && (
+            {(currentTask.type === "add" || currentTask.type === "subtract") && currentTask.num1 !== undefined && currentTask.num2 !== undefined && (
               <div className="flex justify-center items-center gap-4 text-4xl my-4">
                 <div className="flex gap-2">
-                  {Array(currentTask.num1).fill(0).map((_, i) => (
+                  {Array(Math.max(0, Math.min(currentTask.num1 || 0, 10))).fill(0).map((_, i) => (
                     <span key={i}>{currentTask.visual || "🔵"}</span>
                   ))}
                 </div>
@@ -177,7 +220,7 @@ export default function SpecialMode() {
                   {currentTask.type === "add" ? "+" : "-"}
                 </span>
                 <div className="flex gap-2">
-                  {Array(currentTask.num2).fill(0).map((_, i) => (
+                  {Array(Math.max(0, Math.min(currentTask.num2 || 0, 10))).fill(0).map((_, i) => (
                     <span key={i}>{currentTask.visual || "🔵"}</span>
                   ))}
                 </div>
@@ -187,12 +230,12 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for comparison */}
-            {currentTask.type === "compare" && (
+            {currentTask.type === "compare" && currentTask.left !== undefined && currentTask.right !== undefined && (
               <div className="flex justify-center gap-8 my-4">
                 <div className="text-center">
                   <p className="text-xl font-bold mb-2">Left</p>
                   <div className="text-4xl">
-                    {Array(currentTask.left).fill(0).map((_, i) => (
+                    {Array(Math.max(0, Math.min(currentTask.left || 0, 10))).fill(0).map((_, i) => (
                       <span key={i}>{currentTask.visual || "🍎"}</span>
                     ))}
                   </div>
@@ -200,7 +243,7 @@ export default function SpecialMode() {
                 <div className="text-center">
                   <p className="text-xl font-bold mb-2">Right</p>
                   <div className="text-4xl">
-                    {Array(currentTask.right).fill(0).map((_, i) => (
+                    {Array(Math.max(0, Math.min(currentTask.right || 0, 10))).fill(0).map((_, i) => (
                       <span key={i}>{currentTask.visual || "🍎"}</span>
                     ))}
                   </div>
@@ -209,7 +252,7 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for odd one out */}
-            {currentTask.type === "odd" && (
+            {currentTask.type === "odd" && currentTask.items && Array.isArray(currentTask.items) && (
               <div className="flex justify-center gap-3 text-5xl my-4">
                 {currentTask.items.map((item, i) => (
                   <span key={i}>{item}</span>
@@ -218,7 +261,7 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for color sorting */}
-            {currentTask.type === "color" && (
+            {currentTask.type === "color" && currentTask.items && Array.isArray(currentTask.items) && (
               <div className="flex justify-center gap-3 text-5xl my-4">
                 {currentTask.items.map((item, i) => (
                   <span key={i}>{item}</span>
@@ -235,16 +278,16 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for counting */}
-            {currentTask.type === "count" && (
+            {currentTask.type === "count" && currentTask.count !== undefined && (
               <div className="flex justify-center gap-2 text-5xl my-4">
-                {Array(currentTask.count).fill(0).map((_, i) => (
+                {Array(Math.max(0, Math.min(currentTask.count || 0, 10))).fill(0).map((_, i) => (
                   <span key={i}>{currentTask.visual || "🔵"}</span>
                 ))}
               </div>
             )}
 
             {/* Visual representation for pattern */}
-            {currentTask.type === "pattern" && (
+            {currentTask.type === "pattern" && currentTask.items && Array.isArray(currentTask.items) && (
               <div className="flex justify-center gap-3 text-5xl my-4">
                 {currentTask.items.map((item, i) => (
                   <span key={i} className={item === "?" ? "text-3xl font-bold text-red-600" : ""}>
@@ -263,7 +306,7 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for category */}
-            {currentTask.type === "category" && (
+            {currentTask.type === "category" && currentTask.categoryItems && Array.isArray(currentTask.categoryItems) && (
               <div className="flex flex-col items-center gap-4 my-4">
                 <div className="flex gap-3 text-5xl">
                   {currentTask.categoryItems.map((item, i) => (
@@ -275,7 +318,7 @@ export default function SpecialMode() {
             )}
 
             {/* Visual representation for sequence */}
-            {currentTask.type === "sequence" && (
+            {currentTask.type === "sequence" && currentTask.numbers && Array.isArray(currentTask.numbers) && (
               <div className="flex justify-center items-center gap-3 text-4xl my-4">
                 {currentTask.numbers.map((num, i) => (
                   <span key={i} className="font-bold">{num}</span>

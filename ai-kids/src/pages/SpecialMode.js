@@ -4,32 +4,33 @@ import { Link } from "react-router-dom";
 import { generateSpecialTask } from "../data/specialTaskGenerators";
 
 export default function SpecialMode() {
-  const [step, setStep] = useState(0);
+  const [level, setLevel] = useState(1); // 1, 2, or 3
+  const [step, setStep] = useState(0); // 0, 1, or 2 (task within level)
   const [mistakes, setMistakes] = useState(0);
   const [lockedOption, setLockedOption] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [completedTasks, setCompletedTasks] = useState(0);
+  const [levelMistakes, setLevelMistakes] = useState(0); // Mistakes in current level
 
-  // Generate 3 simple, structured tasks
-  // Regenerate when session completes
+  // Generate 3 tasks for current level
   const tasks = useMemo(() => {
+    const difficulty = level === 1 ? "easy" : level === 2 ? "medium" : "hard";
     return [
-      generateSpecialTask("easy"),
-      generateSpecialTask("easy"),
-      generateSpecialTask("easy")
+      generateSpecialTask(difficulty, level),
+      generateSpecialTask(difficulty, level),
+      generateSpecialTask(difficulty, level)
     ];
-  }, [Math.floor(completedTasks / 3)]); // Regenerate every 3 tasks
+  }, [level]);
 
   const currentTask = tasks[step];
 
-  // Reset when starting new session
+  // Reset when starting new level
   useEffect(() => {
-    if (step === 0 && completedTasks > 0) {
-      setMistakes(0);
+    if (step === 0 && level > 1) {
+      setLevelMistakes(0);
       setLockedOption(null);
       setShowSuccess(false);
     }
-  }, [step, completedTasks]);
+  }, [step, level]);
 
   function handleAnswer(option) {
     if (lockedOption !== null) return;
@@ -40,6 +41,7 @@ export default function SpecialMode() {
 
     if (!correct) {
       setMistakes(m => m + 1);
+      setLevelMistakes(m => m + 1);
       // Visual feedback for wrong answer
       setTimeout(() => {
         setLockedOption(null);
@@ -54,11 +56,21 @@ export default function SpecialMode() {
       setLockedOption(null);
       
       if (step < 2) {
+        // Move to next task in same level
         setStep(s => s + 1);
       } else {
-        // Session complete
-        setCompletedTasks(prev => prev + 1);
-        setStep(0);
+        // Level complete - move to next level
+        if (level < 3) {
+          setLevel(l => l + 1);
+          setStep(0);
+          setLevelMistakes(0);
+        } else {
+          // All 3 levels complete - restart from level 1
+          setLevel(1);
+          setStep(0);
+          setLevelMistakes(0);
+          setMistakes(0);
+        }
       }
     }, 2000);
   }
@@ -71,7 +83,10 @@ export default function SpecialMode() {
         {/* Header with clear structure */}
         <div className="bg-white rounded-xl p-4 mb-4 shadow-lg border-4 border-emerald-300">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-emerald-900">Learning Time</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-emerald-900">Learning Time</h1>
+              <p className="text-lg font-semibold text-blue-600">Level {level} of 3</p>
+            </div>
             <Link to="/">
               <button className="bg-gray-200 px-4 py-2 rounded-lg text-gray-700 font-semibold hover:bg-gray-300">
                 Home
@@ -79,7 +94,28 @@ export default function SpecialMode() {
             </Link>
           </div>
           
-          {/* Visual progress indicator */}
+          {/* Level progress indicator */}
+          <div className="mt-4 mb-2">
+            <div className="flex gap-2 mb-2">
+              {[1, 2, 3].map((lvl) => (
+                <div
+                  key={lvl}
+                  className={`flex-1 h-4 rounded-full border-2 ${
+                    lvl < level
+                      ? "bg-green-500 border-green-600"
+                      : lvl === level
+                      ? "bg-blue-500 border-blue-600"
+                      : "bg-gray-200 border-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-center text-sm text-gray-600">
+              Level {level} Progress
+            </p>
+          </div>
+
+          {/* Task progress indicator within level */}
           <div className="mt-4 flex gap-2">
             {[0, 1, 2].map((i) => (
               <div
@@ -95,7 +131,7 @@ export default function SpecialMode() {
             ))}
           </div>
           <p className="text-center mt-2 text-lg font-semibold text-emerald-800">
-            Task {step + 1} of 3
+            Task {step + 1} of 3 (Level {level})
           </p>
         </div>
 
@@ -275,17 +311,35 @@ export default function SpecialMode() {
           </div>
         </div>
 
-        {/* Session summary */}
-        {step === 2 && showSuccess && (
+        {/* Level completion message */}
+        {step === 2 && showSuccess && level < 3 && (
           <div className="mt-6 bg-yellow-50 border-4 border-yellow-400 rounded-xl p-6 text-center">
             <p className="text-2xl font-bold text-yellow-900 mb-2">
-              Session Complete! 🎊
+              Level {level} Complete! 🎊
             </p>
             <p className="text-lg text-yellow-800">
-              You completed {completedTasks + 1} session{completedTasks > 0 ? "s" : ""}!
+              Great job! Moving to Level {level + 1}...
             </p>
             <p className="text-lg text-yellow-800 mt-2">
-              Mistakes: {mistakes}
+              Mistakes in this level: {levelMistakes}
+            </p>
+          </div>
+        )}
+
+        {/* All levels complete */}
+        {step === 2 && showSuccess && level === 3 && (
+          <div className="mt-6 bg-purple-50 border-4 border-purple-400 rounded-xl p-6 text-center">
+            <p className="text-3xl font-bold text-purple-900 mb-2">
+              All Levels Complete! 🏆🎉
+            </p>
+            <p className="text-xl text-purple-800 mb-2">
+              You finished all 3 levels!
+            </p>
+            <p className="text-lg text-purple-800">
+              Total mistakes: {mistakes}
+            </p>
+            <p className="text-lg text-purple-800 mt-2">
+              Starting over from Level 1...
             </p>
           </div>
         )}

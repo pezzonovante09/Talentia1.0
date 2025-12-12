@@ -9,20 +9,35 @@ const visuals = ["🔵", "🟢", "🔴", "🟡", "🟣", "🟠"];
 
 /**
  * Generate simple addition task with visual support
+ * @param {number} level - 1, 2, or 3
  */
-function generateSimpleAddition() {
-  // Very small numbers: 1-5
-  const a = Math.floor(Math.random() * 5) + 1; // 1-5
-  const b = Math.floor(Math.random() * 5) + 1; // 1-5
+function generateSimpleAddition(level = 1) {
+  let a, b;
+  
+  if (level === 1) {
+    // Level 1: Very small numbers 1-3
+    a = Math.floor(Math.random() * 3) + 1; // 1-3
+    b = Math.floor(Math.random() * 3) + 1; // 1-3
+  } else if (level === 2) {
+    // Level 2: Small numbers 1-5
+    a = Math.floor(Math.random() * 5) + 1; // 1-5
+    b = Math.floor(Math.random() * 5) + 1; // 1-5
+  } else {
+    // Level 3: Medium numbers 1-7
+    a = Math.floor(Math.random() * 7) + 1; // 1-7
+    b = Math.floor(Math.random() * 7) + 1; // 1-7
+  }
+  
   const sum = a + b;
   const visual = visuals[Math.floor(Math.random() * visuals.length)];
 
-  // Simple distractors: close to correct answer
+  // Distractors get harder with level
+  let distractorRange = level === 1 ? [1] : level === 2 ? [1, 2] : [1, 2, 3];
   const options = [
     sum,
-    sum + 1,
-    Math.max(1, sum - 1),
-    sum + 2
+    sum + distractorRange[0],
+    Math.max(1, sum - distractorRange[0]),
+    sum + (distractorRange[1] || distractorRange[0])
   ];
 
   return {
@@ -38,11 +53,25 @@ function generateSimpleAddition() {
 
 /**
  * Generate simple subtraction task with visual support
+ * @param {number} level - 1, 2, or 3
  */
-function generateSimpleSubtraction() {
-  // Start with small number, subtract smaller
-  const a = Math.floor(Math.random() * 5) + 3; // 3-7
-  const b = Math.floor(Math.random() * (a - 1)) + 1; // 1 to a-1
+function generateSimpleSubtraction(level = 2) {
+  let a, b;
+  
+  if (level === 1) {
+    // Level 1: Very simple (not used in level 1, but just in case)
+    a = Math.floor(Math.random() * 3) + 2; // 2-4
+    b = Math.floor(Math.random() * (a - 1)) + 1;
+  } else if (level === 2) {
+    // Level 2: Small numbers
+    a = Math.floor(Math.random() * 4) + 3; // 3-6
+    b = Math.floor(Math.random() * (a - 1)) + 1;
+  } else {
+    // Level 3: Medium numbers
+    a = Math.floor(Math.random() * 5) + 4; // 4-8
+    b = Math.floor(Math.random() * (a - 1)) + 1;
+  }
+  
   const result = a - b;
   const visual = visuals[Math.floor(Math.random() * visuals.length)];
 
@@ -66,11 +95,25 @@ function generateSimpleSubtraction() {
 
 /**
  * Generate simple comparison task
+ * @param {number} level - 1, 2, or 3
  */
-function generateSimpleComparison() {
-  // Clear difference between numbers
-  const left = Math.floor(Math.random() * 3) + 2; // 2-4
-  const right = Math.floor(Math.random() * 3) + 5; // 5-7
+function generateSimpleComparison(level = 1) {
+  let left, right;
+  
+  if (level === 1) {
+    // Level 1: Very clear difference
+    left = Math.floor(Math.random() * 2) + 2; // 2-3
+    right = Math.floor(Math.random() * 2) + 5; // 5-6
+  } else if (level === 2) {
+    // Level 2: Clear difference
+    left = Math.floor(Math.random() * 3) + 2; // 2-4
+    right = Math.floor(Math.random() * 3) + 5; // 5-7
+  } else {
+    // Level 3: Smaller difference
+    left = Math.floor(Math.random() * 4) + 2; // 2-5
+    right = Math.floor(Math.random() * 4) + 4; // 4-7
+  }
+  
   // Randomly swap to avoid always left > right
   const finalLeft = Math.random() < 0.5 ? Math.max(left, right) : Math.min(left, right);
   const finalRight = finalLeft === left ? right : left;
@@ -89,17 +132,21 @@ function generateSimpleComparison() {
 
 /**
  * Generate simple odd-one-out task
+ * @param {number} level - 1, 2, or 3
  */
-function generateSimpleOdd() {
-  const shapes = ["🔺", "🟦", "🟢", "🟨", "🔴"];
-  const normal = shapes[Math.floor(Math.random() * shapes.length)];
+function generateSimpleOdd(level = 2) {
+  const shapes = ["🔺", "🟦", "🟢", "🟨", "🔴", "🟣", "⭐"];
+  const normal = shapes[Math.floor(Math.random() * (level === 1 ? 4 : shapes.length))];
   let odd;
   do {
     odd = shapes[Math.floor(Math.random() * shapes.length)];
   } while (odd === normal);
 
-  // Simple pattern: 3 same, 1 different
-  const items = [normal, normal, normal, odd];
+  // Level 1: 3 same, 1 different (very obvious)
+  // Level 2-3: More items, slightly harder
+  const count = level === 1 ? 3 : level === 2 ? 4 : 5;
+  const items = Array(count).fill(normal);
+  items.push(odd);
 
   return {
     type: "odd",
@@ -111,8 +158,9 @@ function generateSimpleOdd() {
 
 /**
  * Generate color sorting task
+ * @param {number} level - 1, 2, or 3
  */
-function generateColorSort() {
+function generateColorSort(level = 1) {
   const colors = [
     { name: "red", emoji: "🔴" },
     { name: "blue", emoji: "🔵" },
@@ -142,8 +190,9 @@ function generateColorSort() {
 
 /**
  * Generate matching task (find the pair)
+ * @param {number} level - 1, 2, or 3
  */
-function generateMatching() {
+function generateMatching(level = 1) {
   const pairs = [
     { item: "🐱", match: "🐱" },
     { item: "🐶", match: "🐶" },
@@ -173,9 +222,19 @@ function generateMatching() {
 
 /**
  * Generate counting task
+ * @param {number} level - 1, 2, or 3
  */
-function generateCounting() {
-  const count = Math.floor(Math.random() * 5) + 1; // 1-5
+function generateCounting(level = 1) {
+  let count;
+  
+  if (level === 1) {
+    count = Math.floor(Math.random() * 3) + 1; // 1-3
+  } else if (level === 2) {
+    count = Math.floor(Math.random() * 5) + 1; // 1-5
+  } else {
+    count = Math.floor(Math.random() * 7) + 1; // 1-7
+  }
+  
   const visual = visuals[Math.floor(Math.random() * visuals.length)];
   
   const options = [
@@ -197,8 +256,9 @@ function generateCounting() {
 
 /**
  * Generate simple pattern task
+ * @param {number} level - 1, 2, or 3 (only used in level 3)
  */
-function generatePattern() {
+function generatePattern(level = 3) {
   const patterns = [
     { items: ["🔴", "🔵", "🔴", "🔵", "?"], next: "🔴" },
     { items: ["🟢", "🟢", "🟡", "🟢", "🟢", "?"], next: "🟡" },
@@ -222,8 +282,9 @@ function generatePattern() {
 
 /**
  * Generate size comparison task
+ * @param {number} level - 1, 2, or 3
  */
-function generateSizeComparison() {
+function generateSizeComparison(level = 2) {
   const sizes = ["big", "small"];
   const targetSize = sizes[Math.floor(Math.random() * sizes.length)];
   
@@ -245,8 +306,9 @@ function generateSizeComparison() {
 
 /**
  * Generate category task (what belongs together)
+ * @param {number} level - 1, 2, or 3 (only used in level 3)
  */
-function generateCategory() {
+function generateCategory(level = 3) {
   const categories = [
     {
       name: "animals",
@@ -279,13 +341,28 @@ function generateCategory() {
 
 /**
  * Generate simple sequence task
+ * @param {number} level - 1, 2, or 3 (only used in level 3)
  */
-function generateSequence() {
-  const sequences = [
-    { start: 1, step: 1, length: 3 }, // 1, 2, 3, ?
-    { start: 2, step: 1, length: 3 }, // 2, 3, 4, ?
-    { start: 1, step: 2, length: 3 }  // 1, 3, 5, ?
-  ];
+function generateSequence(level = 3) {
+  let sequences;
+  
+  if (level === 1) {
+    // Level 1: Very simple (not used, but just in case)
+    sequences = [{ start: 1, step: 1, length: 2 }]; // 1, 2, ?
+  } else if (level === 2) {
+    // Level 2: Simple
+    sequences = [
+      { start: 1, step: 1, length: 2 }, // 1, 2, ?
+      { start: 2, step: 1, length: 2 }  // 2, 3, ?
+    ];
+  } else {
+    // Level 3: More complex
+    sequences = [
+      { start: 1, step: 1, length: 3 }, // 1, 2, 3, ?
+      { start: 2, step: 1, length: 3 }, // 2, 3, 4, ?
+      { start: 1, step: 2, length: 3 }  // 1, 3, 5, ?
+    ];
+  }
   
   const seq = sequences[Math.floor(Math.random() * sequences.length)];
   const numbers = [];
@@ -311,43 +388,57 @@ function generateSequence() {
 }
 
 /**
- * Generate a special task based on difficulty
+ * Generate a special task based on difficulty and level
  * All tasks are simplified for special needs
+ * @param {string} difficulty - "easy", "medium", or "hard"
+ * @param {number} level - 1, 2, or 3
  */
-export function generateSpecialTask(difficulty = "easy") {
-  // Expanded task types for variety
-  const types = [
-    "add", "subtract", "compare", "odd",
-    "color", "match", "count", "pattern",
-    "size", "category", "sequence"
-  ];
+export function generateSpecialTask(difficulty = "easy", level = 1) {
+  // Task types vary by level for progression
+  let types;
+  
+  if (level === 1) {
+    // Level 1: Simplest tasks
+    types = ["add", "count", "match", "color", "compare"];
+  } else if (level === 2) {
+    // Level 2: Add more variety
+    types = ["add", "subtract", "compare", "odd", "color", "match", "count", "size"];
+  } else {
+    // Level 3: All task types including patterns and sequences
+    types = [
+      "add", "subtract", "compare", "odd",
+      "color", "match", "count", "pattern",
+      "size", "category", "sequence"
+    ];
+  }
+  
   const type = types[Math.floor(Math.random() * types.length)];
 
   switch (type) {
     case "add":
-      return generateSimpleAddition();
+      return generateSimpleAddition(level);
     case "subtract":
-      return generateSimpleSubtraction();
+      return generateSimpleSubtraction(level);
     case "compare":
-      return generateSimpleComparison();
+      return generateSimpleComparison(level);
     case "odd":
-      return generateSimpleOdd();
+      return generateSimpleOdd(level);
     case "color":
-      return generateColorSort();
+      return generateColorSort(level);
     case "match":
-      return generateMatching();
+      return generateMatching(level);
     case "count":
-      return generateCounting();
+      return generateCounting(level);
     case "pattern":
-      return generatePattern();
+      return generatePattern(level);
     case "size":
-      return generateSizeComparison();
+      return generateSizeComparison(level);
     case "category":
-      return generateCategory();
+      return generateCategory(level);
     case "sequence":
-      return generateSequence();
+      return generateSequence(level);
     default:
-      return generateSimpleAddition();
+      return generateSimpleAddition(level);
   }
 }
 

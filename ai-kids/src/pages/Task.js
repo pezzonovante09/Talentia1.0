@@ -220,8 +220,10 @@ export default function Task({ level = null, onFinish, islandId = null }) {
           <div className="grid grid-cols-2 gap-3">
             {q.options.map(opt => {
               const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
-              const isCorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && selectedOptionResult.isCorrect;
-              const isIncorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && !selectedOptionResult.isCorrect;
+              const isCorrectAnswer = String(opt) === String(q.correct);
+              const isCorrect = isSelected && isCorrectAnswer;
+              const isIncorrect = isSelected && !isCorrectAnswer;
+              const isOtherButton = lockedOption !== null && !isSelected;
               
               return (
                 <button
@@ -233,7 +235,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
                       ? "bg-green-500 text-white border-green-600 scale-105"
                       : isIncorrect
                       ? "bg-red-500 text-white border-red-600 scale-105"
-                      : lockedOption !== null
+                      : isOtherButton
                       ? "bg-gray-300 opacity-50"
                       : "bg-white hover:bg-emerald-100 border-gray-300"
                   }`}
@@ -252,8 +254,10 @@ export default function Task({ level = null, onFinish, islandId = null }) {
             <div className="grid grid-cols-2 gap-3">
               {q.options.map(opt => {
                 const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
-                const isCorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && selectedOptionResult.isCorrect;
-                const isIncorrect = isSelected && selectedOptionResult && selectedOptionResult.option === opt && !selectedOptionResult.isCorrect;
+                const isCorrectAnswer = String(opt) === String(q.correct);
+                const isCorrect = isSelected && isCorrectAnswer;
+                const isIncorrect = isSelected && !isCorrectAnswer;
+                const isOtherButton = lockedOption !== null && !isSelected;
                 
                 return (
                   <button
@@ -265,7 +269,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
                         ? "bg-green-500 text-white border-green-600 scale-105"
                         : isIncorrect
                         ? "bg-red-500 text-white border-red-600 scale-105"
-                        : lockedOption !== null
+                        : isOtherButton
                         ? "bg-gray-300 opacity-50"
                         : "bg-white hover:bg-emerald-100 border-gray-300"
                     }`}
@@ -282,8 +286,10 @@ export default function Task({ level = null, onFinish, islandId = null }) {
           <div className="flex justify-center gap-3 text-4xl">
             {q.items.map((shape, i) => {
               const isSelected = lockedOption !== null && String(lockedOption) === String(shape);
-              const isCorrect = isSelected && selectedOptionResult && String(selectedOptionResult.option) === String(shape) && selectedOptionResult.isCorrect;
-              const isIncorrect = isSelected && selectedOptionResult && String(selectedOptionResult.option) === String(shape) && !selectedOptionResult.isCorrect;
+              const isCorrectAnswer = String(shape) === String(q.correct);
+              const isCorrect = isSelected && isCorrectAnswer;
+              const isIncorrect = isSelected && !isCorrectAnswer;
+              const isOtherButton = lockedOption !== null && !isSelected;
               
               return (
                 <button
@@ -295,7 +301,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
                       ? "bg-green-500 scale-110 border-4 border-green-600"
                       : isIncorrect
                       ? "bg-red-500 scale-110 border-4 border-red-600"
-                      : lockedOption !== null
+                      : isOtherButton
                       ? "bg-gray-300 opacity-50"
                       : "bg-white hover:bg-emerald-100"
                   }`}

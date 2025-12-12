@@ -115,7 +115,7 @@ Tali's friendly, supportive response (1-2 complete sentences, warm and encouragi
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { 
               temperature: 0.9, 
-              maxOutputTokens: 80,  // Increased for more helpful responses
+              maxOutputTokens: 200,  // Increased for complete responses
               topP: 0.95
             }
           }),
@@ -150,8 +150,21 @@ Tali's friendly, supportive response (1-2 complete sentences, warm and encouragi
     }
 
     const data = await aiRes.json();
+    
+    // Debug: log the full response structure
+    console.log("Gemini API response structure:", JSON.stringify(data).substring(0, 500));
 
     let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    // If reply is missing, try alternative paths
+    if (!reply && data?.candidates?.[0]?.content?.parts) {
+      console.log("Trying alternative response extraction...");
+      reply = data.candidates[0].content.parts
+        .map(part => part.text)
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
     
     // Fallback if no reply
     if (!reply || reply.length === 0) {
@@ -164,9 +177,23 @@ Tali's friendly, supportive response (1-2 complete sentences, warm and encouragi
       }
     }
 
-    // Ensure reply is short (truncate if too long)
-    if (reply.length > 100) {
-      reply = reply.substring(0, 97) + "...";
+    // Log the full reply for debugging
+    console.log(`Full reply received (${reply.length} chars): ${reply}`);
+    
+    // Only truncate if extremely long (keep it reasonable for kids, but allow complete sentences)
+    if (reply.length > 200) {
+      // Find the last complete sentence before 200 chars
+      const truncated = reply.substring(0, 200);
+      const lastPeriod = truncated.lastIndexOf('.');
+      const lastExclamation = truncated.lastIndexOf('!');
+      const lastQuestion = truncated.lastIndexOf('?');
+      const lastSentenceEnd = Math.max(lastPeriod, lastExclamation, lastQuestion);
+      
+      if (lastSentenceEnd > 50) {
+        reply = reply.substring(0, lastSentenceEnd + 1);
+      } else {
+        reply = truncated + "...";
+      }
     }
 
     res.status(200).json({ reply });

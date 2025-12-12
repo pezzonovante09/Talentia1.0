@@ -7,29 +7,28 @@ function setCORSHeaders(res) {
 }
 
 export default async function handler(req, res) {
-  // Log for debugging (check Vercel function logs)
-  console.log(`[${new Date().toISOString()}] ${req.method} request to /api/chat`);
-  
-  // Handle OPTIONS preflight request FIRST - before anything else
-  if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS preflight request");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Max-Age", "86400");
-    return res.status(200).send("");
-  }
-  
-  // Set CORS headers for ALL other requests
-  setCORSHeaders(res);
-
-  // Only allow POST
-  if (req.method !== "POST") {
-    res.status(405).json({ reply: "Method not allowed" });
-    return;
-  }
-
   try {
+    // Log for debugging (check Vercel function logs)
+    console.log(`[${new Date().toISOString()}] ${req.method} request to /api/chat`);
+    
+    // Handle OPTIONS preflight request FIRST - before anything else
+    if (req.method === "OPTIONS") {
+      console.log("Handling OPTIONS preflight request");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.setHeader("Access-Control-Max-Age", "86400");
+      return res.status(200).send("");
+    }
+    
+    // Set CORS headers for ALL other requests
+    setCORSHeaders(res);
+
+    // Only allow POST
+    if (req.method !== "POST") {
+      res.status(405).json({ reply: "Method not allowed" });
+      return;
+    }
     const { message = "", task = "", correct = "", history = [] } = req.body;
 
     // Normalize message and correct answer for comparison
@@ -73,6 +72,12 @@ ${isCorrectAnswer ? "IMPORTANT: The child just gave the CORRECT answer! Praise t
 ${isAskingForHelp ? "IMPORTANT: The child is asking for help. Give a simple, unique hint that hasn't been given before." : ""}
 
 Tali's response (1-2 short sentences, kid-friendly):`;
+
+    // Check if API key is set
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not set!");
+      throw new Error("GEMINI_API_KEY environment variable is missing");
+    }
 
     const url =
       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" +
@@ -119,7 +124,21 @@ Tali's response (1-2 short sentences, kid-friendly):`;
     return;
   } catch (err) {
     console.error("Backend error:", err);
+    console.error("Error stack:", err.stack);
+    setCORSHeaders(res);
     res.status(500).json({ reply: "Tali is thinking... try again! 🦕" });
+    return;
+  }
+  } catch (outerErr) {
+    // Catch any errors in the outer handler (like CORS setup)
+    console.error("Outer handler error:", outerErr);
+    console.error("Error stack:", outerErr.stack);
+    try {
+      setCORSHeaders(res);
+      res.status(500).json({ reply: "Tali is confused... try again! 🦕" });
+    } catch (finalErr) {
+      console.error("Final error:", finalErr);
+    }
     return;
   }
 }

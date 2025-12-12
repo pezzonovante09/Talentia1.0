@@ -62,7 +62,7 @@ export default function Task({ level = null, onFinish, islandId = null }) {
   const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
   // Track answer feedback (correct/incorrect)
   const [answerFeedback, setAnswerFeedback] = useState(null); // 'correct' | 'incorrect' | null
-  // Track which option was correct/incorrect
+  // Track which option was correct/incorrect - store the actual value and result
   const [selectedOptionResult, setSelectedOptionResult] = useState(null); // { option: value, isCorrect: boolean } | null
 
   // Generate 3 tasks where each is progressively harder:
@@ -141,11 +141,17 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     if (!q || sessionFinished) return; // Safety check - don't process if session finished
     
     // Normalize comparison - convert both to strings for reliable comparison
-    const correct = String(option) === String(q.correct);
+    const optionStr = String(option);
+    const correctStr = String(q.correct);
+    const correct = optionStr === correctStr;
 
+    // Set all states together to ensure they update synchronously
     setLockedOption(option);
     setAnswerFeedback(correct ? 'correct' : 'incorrect');
     setSelectedOptionResult({ option, isCorrect: correct });
+    
+    // Debug log
+    console.log('Answer clicked:', { option, correct: q.correct, isCorrect: correct });
 
     if (!correct) {
       setMistakes(m => m + 1);
@@ -219,26 +225,41 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         {(q.type === "add" || q.type === "subtract" || q.type === "multiply" || q.type === "sequence" || q.type === "compute") && (
           <div className="grid grid-cols-2 gap-3">
             {q.options.map(opt => {
-              const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
-              const isCorrectAnswer = String(opt) === String(q.correct);
+              // Normalize both values for comparison
+              const optStr = String(opt);
+              const correctStr = String(q.correct);
+              const lockedStr = lockedOption !== null ? String(lockedOption) : null;
+              
+              const isSelected = lockedStr === optStr;
+              const isCorrectAnswer = optStr === correctStr;
               const isCorrect = isSelected && isCorrectAnswer;
               const isIncorrect = isSelected && !isCorrectAnswer;
-              const isOtherButton = lockedOption !== null && !isSelected;
+              const isOtherButton = lockedStr !== null && !isSelected;
+              
+              // Determine button class and style
+              let buttonClass = "p-4 border-2 rounded-xl text-xl font-bold transition-all duration-300 ";
+              let buttonStyle = {};
+              
+              if (isCorrect) {
+                buttonClass += "bg-green-500 text-white border-green-600 scale-105";
+                buttonStyle = { backgroundColor: '#10b981', color: 'white', borderColor: '#059669', transform: 'scale(1.05)' };
+              } else if (isIncorrect) {
+                buttonClass += "bg-red-500 text-white border-red-600 scale-105";
+                buttonStyle = { backgroundColor: '#ef4444', color: 'white', borderColor: '#dc2626', transform: 'scale(1.05)' };
+              } else if (isOtherButton) {
+                buttonClass += "bg-gray-300 opacity-50";
+                buttonStyle = { backgroundColor: '#d1d5db', opacity: 0.5 };
+              } else {
+                buttonClass += "bg-white hover:bg-emerald-100 border-gray-300";
+              }
               
               return (
                 <button
                   key={opt}
                   disabled={lockedOption !== null}
                   onClick={() => handleAnswer(opt)}
-                  className={`p-4 border-2 rounded-xl text-xl font-bold transition-all duration-300 ${
-                    isCorrect
-                      ? "bg-green-500 text-white border-green-600 scale-105"
-                      : isIncorrect
-                      ? "bg-red-500 text-white border-red-600 scale-105"
-                      : isOtherButton
-                      ? "bg-gray-300 opacity-50"
-                      : "bg-white hover:bg-emerald-100 border-gray-300"
-                  }`}
+                  className={buttonClass}
+                  style={Object.keys(buttonStyle).length > 0 ? buttonStyle : undefined}
                 >
                   {opt}
                 </button>
@@ -253,26 +274,41 @@ export default function Task({ level = null, onFinish, islandId = null }) {
             <p className="text-xl">Right: {q.right}</p>
             <div className="grid grid-cols-2 gap-3">
               {q.options.map(opt => {
-                const isSelected = lockedOption !== null && String(lockedOption) === String(opt);
-                const isCorrectAnswer = String(opt) === String(q.correct);
+                // Normalize both values for comparison
+                const optStr = String(opt);
+                const correctStr = String(q.correct);
+                const lockedStr = lockedOption !== null ? String(lockedOption) : null;
+                
+                const isSelected = lockedStr === optStr;
+                const isCorrectAnswer = optStr === correctStr;
                 const isCorrect = isSelected && isCorrectAnswer;
                 const isIncorrect = isSelected && !isCorrectAnswer;
-                const isOtherButton = lockedOption !== null && !isSelected;
+                const isOtherButton = lockedStr !== null && !isSelected;
+                
+                // Determine button class and style
+                let buttonClass = "p-4 border-2 rounded-xl font-bold transition-all duration-300 ";
+                let buttonStyle = {};
+                
+                if (isCorrect) {
+                  buttonClass += "bg-green-500 text-white border-green-600 scale-105";
+                  buttonStyle = { backgroundColor: '#10b981', color: 'white', borderColor: '#059669', transform: 'scale(1.05)' };
+                } else if (isIncorrect) {
+                  buttonClass += "bg-red-500 text-white border-red-600 scale-105";
+                  buttonStyle = { backgroundColor: '#ef4444', color: 'white', borderColor: '#dc2626', transform: 'scale(1.05)' };
+                } else if (isOtherButton) {
+                  buttonClass += "bg-gray-300 opacity-50";
+                  buttonStyle = { backgroundColor: '#d1d5db', opacity: 0.5 };
+                } else {
+                  buttonClass += "bg-white hover:bg-emerald-100 border-gray-300";
+                }
                 
                 return (
                   <button
                     key={opt}
                     disabled={lockedOption !== null}
                     onClick={() => handleAnswer(opt)}
-                    className={`p-4 border-2 rounded-xl font-bold transition-all duration-300 ${
-                      isCorrect
-                        ? "bg-green-500 text-white border-green-600 scale-105"
-                        : isIncorrect
-                        ? "bg-red-500 text-white border-red-600 scale-105"
-                        : isOtherButton
-                        ? "bg-gray-300 opacity-50"
-                        : "bg-white hover:bg-emerald-100 border-gray-300"
-                    }`}
+                    className={buttonClass}
+                    style={Object.keys(buttonStyle).length > 0 ? buttonStyle : undefined}
                   >
                     {opt.toUpperCase()}
                   </button>
@@ -285,26 +321,41 @@ export default function Task({ level = null, onFinish, islandId = null }) {
         {q.type === "odd" && (
           <div className="flex justify-center gap-3 text-4xl">
             {q.items.map((shape, i) => {
-              const isSelected = lockedOption !== null && String(lockedOption) === String(shape);
-              const isCorrectAnswer = String(shape) === String(q.correct);
+              // Normalize both values for comparison
+              const shapeStr = String(shape);
+              const correctStr = String(q.correct);
+              const lockedStr = lockedOption !== null ? String(lockedOption) : null;
+              
+              const isSelected = lockedStr === shapeStr;
+              const isCorrectAnswer = shapeStr === correctStr;
               const isCorrect = isSelected && isCorrectAnswer;
               const isIncorrect = isSelected && !isCorrectAnswer;
-              const isOtherButton = lockedOption !== null && !isSelected;
+              const isOtherButton = lockedStr !== null && !isSelected;
+              
+              // Determine button class and style
+              let buttonClass = "p-4 rounded-xl shadow transition-all duration-300 ";
+              let buttonStyle = {};
+              
+              if (isCorrect) {
+                buttonClass += "bg-green-500 scale-110 border-4 border-green-600";
+                buttonStyle = { backgroundColor: '#10b981', transform: 'scale(1.1)', border: '4px solid #059669' };
+              } else if (isIncorrect) {
+                buttonClass += "bg-red-500 scale-110 border-4 border-red-600";
+                buttonStyle = { backgroundColor: '#ef4444', transform: 'scale(1.1)', border: '4px solid #dc2626' };
+              } else if (isOtherButton) {
+                buttonClass += "bg-gray-300 opacity-50";
+                buttonStyle = { backgroundColor: '#d1d5db', opacity: 0.5 };
+              } else {
+                buttonClass += "bg-white hover:bg-emerald-100";
+              }
               
               return (
                 <button
                   key={i}
                   disabled={lockedOption !== null}
                   onClick={() => handleAnswer(shape)}
-                  className={`p-4 rounded-xl shadow transition-all duration-300 ${
-                    isCorrect
-                      ? "bg-green-500 scale-110 border-4 border-green-600"
-                      : isIncorrect
-                      ? "bg-red-500 scale-110 border-4 border-red-600"
-                      : isOtherButton
-                      ? "bg-gray-300 opacity-50"
-                      : "bg-white hover:bg-emerald-100"
-                  }`}
+                  className={buttonClass}
+                  style={Object.keys(buttonStyle).length > 0 ? buttonStyle : undefined}
                 >
                   {shape}
                 </button>

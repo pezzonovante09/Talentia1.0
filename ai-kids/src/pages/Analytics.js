@@ -3,7 +3,6 @@ import ScreenSection from "../components/ScreenSection";
 import { Link } from "react-router-dom";
 import { loadAnalytics, getRecentErrors, getErrorRateByType } from "../utils/analytics";
 import ChatPanel from "../components/ChatPanel";
-import useChatAssistant from "../hooks/useChatAssistant.js";
 
 export default function Analytics() {
   const [analytics, setAnalytics] = useState(null);
@@ -26,15 +25,6 @@ export default function Analytics() {
     sequence: "Sequence",
     odd: "Odd One Out"
   };
-
-  const { messages, isLoading, error, sendMessage } = useChatAssistant({
-    question: selectedError?.task || "",
-    correct: selectedError?.correctAnswer || "",
-    taskType: selectedError?.taskType || "add",
-    level: 1,
-    mistakes: 0,
-    lastThreeMistakes: []
-  });
 
   function handleDiscussError(errorRecord) {
     setSelectedError(errorRecord);

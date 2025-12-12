@@ -1,7 +1,18 @@
 // Task generators with adaptive difficulty modifiers
 
+// Enhanced shuffle with timestamp-based randomization
 function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  // Add timestamp-based seed for extra randomness
+  const seed = Date.now() % 1000;
+  return [...arr].sort(() => {
+    const rand = Math.random() + (seed / 1000);
+    return rand - 0.5;
+  });
+}
+
+// Generate random number with better distribution
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 /**
@@ -13,43 +24,61 @@ function generateAdditionTask(modifier = "neutral", isIslands4to6 = false) {
   let a, b;
   
   if (modifier === "easier") {
-    // Easier: small numbers 1-10
-    a = Math.floor(Math.random() * 10) + 1;
-    b = Math.floor(Math.random() * 10) + 1;
+    // Easier: small numbers 1-10, fully random
+    a = randomInt(1, 10);
+    b = randomInt(1, 10);
   } else if (modifier === "harder" && isIslands4to6) {
     // Harder on islands 4-6: much larger numbers 30-80
-    a = Math.floor(Math.random() * 51) + 30; // 30-80
-    b = Math.floor(Math.random() * 51) + 30; // 30-80
+    a = randomInt(30, 80);
+    b = randomInt(30, 80);
   } else {
     // Neutral or harder on islands 1-3: medium numbers 1-30
-    a = Math.floor(Math.random() * 30) + 1;
-    b = Math.floor(Math.random() * 30) + 1;
+    a = randomInt(1, 30);
+    b = randomInt(1, 30);
   }
   
   const sum = a + b;
   
-  // Adjust distractor difficulty
-  let distractorRange;
+  // More varied distractors - generate multiple options and pick random ones
+  let distractorOptions = [];
   if (modifier === "easier") {
-    distractorRange = [1, 2]; // Easy distractors
+    distractorOptions = [1, 2, 3, -1, -2];
   } else if (modifier === "harder") {
-    distractorRange = [2, 5, 7]; // Harder distractors
+    distractorOptions = [2, 3, 5, 7, 10, -2, -3, -5];
   } else {
-    distractorRange = [2, 3, 5]; // Medium distractors
+    distractorOptions = [2, 3, 4, 5, -2, -3];
   }
+  
+  // Pick 3 random distractors
+  const shuffledDistractors = shuffle([...distractorOptions]);
+  const dist1 = shuffledDistractors[0];
+  const dist2 = shuffledDistractors[1];
+  const dist3 = shuffledDistractors[2];
   
   const options = [
     sum,
-    sum + distractorRange[0],
-    Math.max(1, sum - distractorRange[0]),
-    sum + (distractorRange[1] || distractorRange[0])
+    Math.max(1, sum + dist1),
+    Math.max(1, sum + dist2),
+    Math.max(1, sum + dist3)
   ];
+  
+  // Ensure all options are unique
+  const uniqueOptions = [...new Set(options)];
+  while (uniqueOptions.length < 4) {
+    const extraDist = randomInt(-5, 5);
+    if (extraDist !== 0) {
+      const newOption = Math.max(1, sum + extraDist);
+      if (!uniqueOptions.includes(newOption)) {
+        uniqueOptions.push(newOption);
+      }
+    }
+  }
   
   return {
     type: "add",
     question: `How many is ${a} + ${b}?`,
     correct: sum,
-    options: shuffle(options),
+    options: shuffle(uniqueOptions.slice(0, 4)),
   };
 }
 
@@ -62,29 +91,37 @@ function generateCompareTask(modifier = "neutral", isIslands4to6 = false) {
   let left, right;
   
   if (modifier === "easier") {
-    // Easier: big difference (e.g., 3 vs 9, 2 vs 8)
-    const base = Math.floor(Math.random() * 5) + 2; // 2-6
-    const diff = Math.floor(Math.random() * 5) + 4; // 4-8 difference
+    // Easier: big difference, fully random
+    const base = randomInt(2, 10);
+    const diff = randomInt(4, 10); // Big difference
     left = base;
     right = base + diff;
-    // Ensure they're different
+    // Randomly swap
     if (Math.random() < 0.5) {
       [left, right] = [right, left];
     }
   } else if (modifier === "harder" && isIslands4to6) {
-    // Harder on islands 4-6: very small difference with larger numbers (e.g., 45 vs 46, 67 vs 68)
-    const base = Math.floor(Math.random() * 40) + 30; // 30-69
+    // Harder on islands 4-6: very small difference with larger numbers
+    const base = randomInt(30, 70);
+    const diff = randomInt(1, 2); // Very small difference (1 or 2)
     left = base;
-    right = base + 1; // Difference of 1
+    right = base + diff;
     if (Math.random() < 0.5) {
       [left, right] = [right, left];
     }
   } else {
-    // Neutral or harder on islands 1-3: medium difference
-    left = Math.floor(Math.random() * 15) + 2; // 2-16
-    do {
-      right = Math.floor(Math.random() * 15) + 2; // 2-16
-    } while (left === right);
+    // Neutral or harder on islands 1-3: medium difference, fully random
+    left = randomInt(2, 25);
+    const diff = randomInt(2, 8);
+    if (Math.random() < 0.5) {
+      right = left + diff;
+    } else {
+      right = Math.max(1, left - diff);
+    }
+    // Ensure they're different
+    if (left === right) {
+      right = left + randomInt(1, 5);
+    }
   }
   
   return {
@@ -93,7 +130,7 @@ function generateCompareTask(modifier = "neutral", isIslands4to6 = false) {
     left,
     right,
     correct: left > right ? "left" : "right",
-    options: ["left", "right"],
+    options: shuffle(["left", "right"]), // Shuffle for extra randomness
   };
 }
 
@@ -106,43 +143,56 @@ function generateSubtractionTask(modifier = "neutral", isIslands4to6 = false) {
   let a, b;
   
   if (modifier === "easier") {
-    // Easier: small numbers, result is positive
-    b = Math.floor(Math.random() * 5) + 1; // 1-5
-    a = Math.floor(Math.random() * 5) + b + 1; // b+1 to b+5
+    // Easier: small numbers, result is positive, fully random
+    b = randomInt(1, 8);
+    a = randomInt(b + 1, b + 10); // Ensure positive result
   } else if (modifier === "harder" && isIslands4to6) {
     // Harder on islands 4-6: larger numbers
-    b = Math.floor(Math.random() * 30) + 20; // 20-49
-    a = Math.floor(Math.random() * 20) + b + 1; // b+1 to b+20
+    b = randomInt(20, 60);
+    a = randomInt(b + 1, b + 30);
   } else {
     // Neutral or harder on islands 1-3: medium numbers
-    b = Math.floor(Math.random() * 15) + 1; // 1-15
-    a = Math.floor(Math.random() * 15) + b + 1; // b+1 to b+15
+    b = randomInt(1, 20);
+    a = randomInt(b + 1, b + 20);
   }
   
   const result = a - b;
   
-  // Adjust distractor difficulty
-  let distractorRange;
+  // More varied distractors
+  let distractorOptions = [];
   if (modifier === "easier") {
-    distractorRange = [1, 2];
+    distractorOptions = [1, 2, 3, -1, -2, a, b];
   } else if (modifier === "harder") {
-    distractorRange = [2, 5, 7];
+    distractorOptions = [2, 3, 5, 7, 10, -2, -3, -5, a - b + 1, a + b];
   } else {
-    distractorRange = [2, 3, 5];
+    distractorOptions = [2, 3, 4, 5, -2, -3, a, b];
   }
   
+  const shuffledDistractors = shuffle([...distractorOptions]);
   const options = [
     result,
-    result + distractorRange[0],
-    Math.max(1, result - distractorRange[0]),
-    result + (distractorRange[1] || distractorRange[0])
+    Math.max(0, result + shuffledDistractors[0]),
+    Math.max(0, result + shuffledDistractors[1]),
+    Math.max(0, result + shuffledDistractors[2])
   ];
+  
+  // Ensure all options are unique and positive
+  const uniqueOptions = [...new Set(options.filter(opt => opt >= 0))];
+  while (uniqueOptions.length < 4) {
+    const extraDist = randomInt(-3, 5);
+    if (extraDist !== 0) {
+      const newOption = Math.max(0, result + extraDist);
+      if (!uniqueOptions.includes(newOption)) {
+        uniqueOptions.push(newOption);
+      }
+    }
+  }
   
   return {
     type: "subtract",
     question: `How many is ${a} - ${b}?`,
     correct: result,
-    options: shuffle(options),
+    options: shuffle(uniqueOptions.slice(0, 4)),
   };
 }
 
@@ -155,43 +205,54 @@ function generateMultiplicationTask(modifier = "neutral", isIslands4to6 = false)
   let a, b;
   
   if (modifier === "easier") {
-    // Easier: small multiplication tables (2x2, 2x3, 3x2, etc.)
-    a = Math.floor(Math.random() * 3) + 2; // 2-4
-    b = Math.floor(Math.random() * 3) + 2; // 2-4
+    // Easier: small multiplication tables, fully random
+    a = randomInt(2, 5);
+    b = randomInt(2, 5);
   } else if (modifier === "harder" && isIslands4to6) {
     // Harder on islands 4-6: larger numbers
-    a = Math.floor(Math.random() * 5) + 5; // 5-9
-    b = Math.floor(Math.random() * 5) + 5; // 5-9
+    a = randomInt(5, 10);
+    b = randomInt(5, 10);
   } else {
     // Neutral or harder on islands 1-3: medium numbers
-    a = Math.floor(Math.random() * 4) + 2; // 2-5
-    b = Math.floor(Math.random() * 4) + 2; // 2-5
+    a = randomInt(2, 6);
+    b = randomInt(2, 6);
   }
   
   const result = a * b;
   
-  // Adjust distractor difficulty
-  let distractorRange;
+  // More varied distractors
+  let distractorOptions = [];
   if (modifier === "easier") {
-    distractorRange = [a, b, a + b];
+    distractorOptions = [a, b, a + b, a * (b - 1), (a - 1) * b, result + a, result - a];
   } else if (modifier === "harder") {
-    distractorRange = [result + a, result + b, result - a];
+    distractorOptions = [result + a, result + b, result - a, result - b, a + b, a * (b + 1), (a + 1) * b];
   } else {
-    distractorRange = [result + 2, result - 2, a + b];
+    distractorOptions = [result + 2, result - 2, a + b, a * (b - 1), (a - 1) * b, result + a];
   }
   
+  const shuffledDistractors = shuffle([...distractorOptions]);
   const options = [
     result,
-    distractorRange[0],
-    Math.max(1, distractorRange[1]),
-    distractorRange[2] || result + 3
+    Math.max(1, shuffledDistractors[0]),
+    Math.max(1, shuffledDistractors[1]),
+    Math.max(1, shuffledDistractors[2])
   ];
+  
+  // Ensure all options are unique
+  const uniqueOptions = [...new Set(options)];
+  while (uniqueOptions.length < 4) {
+    const extraDist = shuffledDistractors[uniqueOptions.length] || randomInt(-5, 10);
+    const newOption = Math.max(1, result + extraDist);
+    if (!uniqueOptions.includes(newOption)) {
+      uniqueOptions.push(newOption);
+    }
+  }
   
   return {
     type: "multiply",
     question: `How many is ${a} × ${b}?`,
     correct: result,
-    options: shuffle(options),
+    options: shuffle(uniqueOptions.slice(0, 4)),
   };
 }
 
@@ -200,49 +261,77 @@ function generateMultiplicationTask(modifier = "neutral", isIslands4to6 = false)
  * @param {string} modifier - "easier", "neutral", or "harder"
  */
 function generateSequenceTask(modifier = "neutral") {
-  let sequence, correct, question;
+  let sequence, correct, question, step;
+  
+  // More varied patterns
+  const patternType = randomInt(0, 4); // 0-4 different pattern types
   
   if (modifier === "easier") {
-    // Easier: simple counting sequences
-    const start = Math.floor(Math.random() * 5) + 1; // 1-5
-    sequence = [start, start + 1, start + 2, "?"];
-    correct = start + 3;
+    // Easier: simple counting sequences with variations
+    const start = randomInt(1, 10);
+    step = randomInt(1, 3); // 1, 2, or 3
+    sequence = [start, start + step, start + step * 2, "?"];
+    correct = start + step * 3;
     question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
   } else if (modifier === "harder") {
-    // Harder: skip counting or patterns
-    const pattern = Math.random() < 0.5 ? "skip2" : "skip3";
-    if (pattern === "skip2") {
-      const start = Math.floor(Math.random() * 5) + 2; // 2-6
-      sequence = [start, start + 2, start + 4, "?"];
-      correct = start + 6;
-      question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+    // Harder: various patterns
+    const start = randomInt(2, 15);
+    if (patternType === 0) {
+      // Skip counting by 2
+      step = 2;
+      sequence = [start, start + step, start + step * 2, "?"];
+      correct = start + step * 3;
+    } else if (patternType === 1) {
+      // Skip counting by 3
+      step = 3;
+      sequence = [start, start + step, start + step * 2, "?"];
+      correct = start + step * 3;
+    } else if (patternType === 2) {
+      // Increasing by variable amounts
+      const step1 = randomInt(2, 4);
+      const step2 = randomInt(2, 4);
+      sequence = [start, start + step1, start + step1 + step2, "?"];
+      correct = start + step1 + step2 + randomInt(2, 4);
+      step = step2; // Use last step for distractors
     } else {
-      const start = Math.floor(Math.random() * 5) + 3; // 3-7
-      sequence = [start, start + 3, start + 6, "?"];
-      correct = start + 9;
-      question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
+      // Larger steps
+      step = randomInt(4, 7);
+      sequence = [start, start + step, start + step * 2, "?"];
+      correct = start + step * 3;
     }
+    question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
   } else {
-    // Neutral: simple addition pattern
-    const start = Math.floor(Math.random() * 5) + 1; // 1-5
-    const add = Math.floor(Math.random() * 3) + 2; // 2-4
-    sequence = [start, start + add, start + add * 2, "?"];
-    correct = start + add * 3;
+    // Neutral: varied patterns
+    const start = randomInt(1, 10);
+    step = randomInt(1, 5);
+    sequence = [start, start + step, start + step * 2, "?"];
+    correct = start + step * 3;
     question = `What comes next? ${sequence[0]}, ${sequence[1]}, ${sequence[2]}, ?`;
   }
   
-  // Generate distractors
-  const distractors = [
+  // Ensure step is defined
+  if (!step) {
+    step = sequence.length >= 2 ? (sequence[1] - sequence[0]) : 1;
+  }
+  
+  // More varied distractors
+  const distractorOptions = [
     correct + 1,
     correct - 1,
-    correct + (modifier === "easier" ? 2 : 3)
+    correct + step,
+    correct - step,
+    correct + step * 2,
+    sequence[2] + step
   ];
+  
+  const shuffledDistractors = shuffle([...distractorOptions]);
+  const uniqueDistractors = [...new Set(shuffledDistractors.filter(d => d > 0))].slice(0, 3);
   
   return {
     type: "sequence",
     question,
     correct,
-    options: shuffle([correct, ...distractors]),
+    options: shuffle([correct, ...uniqueDistractors]),
   };
 }
 
@@ -251,45 +340,47 @@ function generateSequenceTask(modifier = "neutral") {
  * @param {string} modifier - "easier", "neutral", or "harder"
  */
 function generateOddTask(modifier = "neutral") {
-  const allShapes = ["🔺", "🟦", "🟢", "🟨", "🔴", "🟣", "⭐", "💎"];
+  const allShapes = ["🔺", "🟦", "🟢", "🟨", "🔴", "🟣", "⭐", "💎", "🔷", "🔶", "🟧", "🟩"];
   
   let normal, odd;
   let items;
   
+  // Fully random selection - no pre-made pairs
+  normal = allShapes[randomInt(0, allShapes.length - 1)];
+  const availableShapes = allShapes.filter(s => s !== normal);
+  odd = availableShapes[randomInt(0, availableShapes.length - 1)];
+  
   if (modifier === "easier") {
-    // Easier: very obvious difference - use completely different shape categories
-    const easyPairs = [
-      [["🔺", "🔺", "🔺"], "🟦"], // Triangles vs square
-      [["🟦", "🟦", "🟦"], "🔺"], // Squares vs triangle
-      [["🟢", "🟢", "🟢"], "🔴"], // Green vs red
-      [["🔴", "🔴", "🔴"], "🟢"], // Red vs green
+    // Easier: fewer items, more obvious
+    const normalCount = randomInt(3, 4);
+    items = [
+      ...Array(normalCount).fill(normal),
+      odd
     ];
-    const pair = easyPairs[Math.floor(Math.random() * easyPairs.length)];
-    normal = pair[0][0];
-    odd = pair[1];
-    items = shuffle([...pair[0], odd, ...pair[0].slice(0, 2)]);
+    // Add 1-2 more normal items randomly
+    if (Math.random() < 0.5) {
+      items.push(normal);
+    }
   } else if (modifier === "harder") {
-    // Harder: subtle difference - similar shapes or colors
-    normal = allShapes[Math.floor(Math.random() * allShapes.length)];
-    // Pick a similar but different shape
-    const similarShapes = allShapes.filter(s => s !== normal);
-    odd = similarShapes[Math.floor(Math.random() * similarShapes.length)];
-    // More items, more subtle
-    items = shuffle([
-      normal, normal, normal, normal, normal,
-      odd, normal, normal
-    ]);
+    // Harder: more items, more subtle
+    const normalCount = randomInt(5, 7);
+    items = [
+      ...Array(normalCount).fill(normal),
+      odd,
+      ...Array(randomInt(1, 2)).fill(normal)
+    ];
   } else {
     // Neutral: medium difficulty
-    normal = allShapes[Math.floor(Math.random() * allShapes.length)];
-    do {
-      odd = allShapes[Math.floor(Math.random() * allShapes.length)];
-    } while (odd === normal);
-    items = shuffle([
-      normal, normal, normal,
-      odd, normal, normal
-    ]);
+    const normalCount = randomInt(4, 5);
+    items = [
+      ...Array(normalCount).fill(normal),
+      odd,
+      ...Array(randomInt(1, 2)).fill(normal)
+    ];
   }
+  
+  // Shuffle items for randomness
+  items = shuffle(items);
   
   return {
     type: "odd",

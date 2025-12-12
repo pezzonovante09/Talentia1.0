@@ -5,7 +5,7 @@ import ChatPanel from "../components/ChatPanel";
 import { generateTaskByLevel } from "../data/taskGenerators";
 import { loadProfile, updateProfileAfterSession } from "../utils/profileManager";
 
-export default function Task({ level = null, onFinish }) {
+export default function Task({ level = null, onFinish, islandId = null }) {
   const [step, setStep] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [lockedOption, setLockedOption] = useState(null);
@@ -21,37 +21,48 @@ export default function Task({ level = null, onFinish }) {
     }
   }, [level]);
 
-  // Get difficulty modifier from profile (determines if tasks should be easier/harder/neutral)
-  // This modifier was set based on the PREVIOUS session's performance
-  // For the first session, it will be "neutral"
-  const difficultyModifier = profile?.nextDifficultyModifier || "neutral";
+  // Get difficulty modifier from profile or progress
+  // For islands 1-3: use profile modifier
+  // For islands 4-6: use stored difficulty from progress
+  const progress = JSON.parse(localStorage.getItem("progress") || "{}");
+  let difficultyModifier = profile?.nextDifficultyModifier || "neutral";
+  
+  // If on islands 4-6, use the stored difficulty
+  if (islandId && islandId >= 4 && progress.nextIslandsDifficulty) {
+    const storedDifficulty = progress.nextIslandsDifficulty;
+    // Map stored difficulty to modifier
+    if (storedDifficulty === "hard") {
+      difficultyModifier = "harder";
+    } else if (storedDifficulty === "medium") {
+      difficultyModifier = "neutral";
+    } else if (storedDifficulty === "easy") {
+      difficultyModifier = "easier";
+    }
+  }
 
   // Reset session state when starting a new session (level or modifier changes)
   useEffect(() => {
     setStep(0);
     setMistakes(0);
     setLockedOption(null);
-    setSessionKey(0); // Reset session key when level/modifier changes
   }, [currentLevel, difficultyModifier]);
 
-  // Track session number to regenerate tasks after each set of 3
-  const [sessionKey, setSessionKey] = useState(0);
-
-  // create 3 tasks once per mount / level with adaptive difficulty modifier
-  // Only generate tasks when profile is loaded and we have valid level/modifier
-  // Regenerate when sessionKey changes (after completing 3 tasks)
+  // Generate 3 tasks where each is progressively harder:
+  // Task 1: Easy (level 1)
+  // Task 2: Medium (level 2)
+  // Task 3: Hard (level 3)
   const tasks = useMemo(() => {
     if (!profile || currentLevel < 1) {
       return [];
     }
     
-    // Generate 3 tasks with variety - ensure we get different types if level allows
-    const task1 = generateTaskByLevel(currentLevel, difficultyModifier);
-    const task2 = generateTaskByLevel(currentLevel, difficultyModifier);
-    const task3 = generateTaskByLevel(currentLevel, difficultyModifier);
+    // Each task is progressively harder
+    const task1 = generateTaskByLevel(1, difficultyModifier); // Easy
+    const task2 = generateTaskByLevel(2, difficultyModifier); // Medium
+    const task3 = generateTaskByLevel(3, difficultyModifier); // Hard
     
     return [task1, task2, task3];
-  }, [currentLevel, difficultyModifier, profile, sessionKey]);
+  }, [currentLevel, difficultyModifier, profile]);
 
   // Only show task if step is within bounds (0, 1, or 2)
   const q = step < tasks.length ? tasks[step] : null;
@@ -63,14 +74,10 @@ export default function Task({ level = null, onFinish }) {
     const updatedProfile = updateProfileAfterSession(mistakes);
     setProfile(updatedProfile);
     
-    // Generate new tasks for next session by incrementing sessionKey
-    // This will trigger useMemo to regenerate tasks
-    setSessionKey(prev => prev + 1);
-    
-    // Reset step and mistakes for new session
-    setStep(0);
-    setMistakes(0);
-    setLockedOption(null);
+    // Call onFinish to navigate back to map
+    if (typeof onFinish === "function") {
+      onFinish(mistakes);
+    }
   }
 
   function handleAnswer(option) {

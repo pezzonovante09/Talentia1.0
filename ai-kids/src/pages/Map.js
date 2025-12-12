@@ -7,17 +7,33 @@ export default function Map() {
     island1: true,
     island2: false,
     island3: false,
+    island4: false,
+    island5: false,
+    island6: false,
   });
 
   useEffect(() => {
     const saved = localStorage.getItem("progress");
-    if (saved) setProgress(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setProgress({
+        island1: parsed.island1 !== false,
+        island2: parsed.island2 === true,
+        island3: parsed.island3 === true,
+        island4: parsed.island4 === true,
+        island5: parsed.island5 === true,
+        island6: parsed.island6 === true,
+      });
+    }
   }, []);
 
   const islands = [
     { id: 1, title: "Forest Island", icon: "🌿", unlocked: progress.island1 },
     { id: 2, title: "River Island", icon: "🌊", unlocked: progress.island2 },
     { id: 3, title: "Volcano Island", icon: "🌋", unlocked: progress.island3 },
+    { id: 4, title: "Crystal Island", icon: "💎", unlocked: progress.island4 },
+    { id: 5, title: "Cloud Island", icon: "☁️", unlocked: progress.island5 },
+    { id: 6, title: "Star Island", icon: "⭐", unlocked: progress.island6 },
   ];
 
   return (

@@ -158,6 +158,73 @@ export default function SpecialMode() {
                 ))}
               </div>
             )}
+
+            {/* Visual representation for color sorting */}
+            {currentTask.type === "color" && (
+              <div className="flex justify-center gap-3 text-5xl my-4">
+                {currentTask.items.map((item, i) => (
+                  <span key={i}>{item}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Visual representation for matching */}
+            {currentTask.type === "match" && (
+              <div className="flex flex-col items-center gap-4 my-4">
+                <div className="text-6xl mb-2">{currentTask.target}</div>
+                <p className="text-xl font-bold text-blue-800">Find the same:</p>
+              </div>
+            )}
+
+            {/* Visual representation for counting */}
+            {currentTask.type === "count" && (
+              <div className="flex justify-center gap-2 text-5xl my-4">
+                {Array(currentTask.count).fill(0).map((_, i) => (
+                  <span key={i}>{currentTask.visual || "🔵"}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Visual representation for pattern */}
+            {currentTask.type === "pattern" && (
+              <div className="flex justify-center gap-3 text-5xl my-4">
+                {currentTask.items.map((item, i) => (
+                  <span key={i} className={item === "?" ? "text-3xl font-bold text-red-600" : ""}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Visual representation for size comparison */}
+            {currentTask.type === "size" && (
+              <div className="flex justify-center gap-8 my-4">
+                <div className="text-6xl">{currentTask.bigItem}</div>
+                <div className="text-4xl">{currentTask.smallItem}</div>
+              </div>
+            )}
+
+            {/* Visual representation for category */}
+            {currentTask.type === "category" && (
+              <div className="flex flex-col items-center gap-4 my-4">
+                <div className="flex gap-3 text-5xl">
+                  {currentTask.categoryItems.map((item, i) => (
+                    <span key={i}>{item}</span>
+                  ))}
+                </div>
+                <p className="text-xl font-bold text-blue-800">Which one belongs?</p>
+              </div>
+            )}
+
+            {/* Visual representation for sequence */}
+            {currentTask.type === "sequence" && (
+              <div className="flex justify-center items-center gap-3 text-4xl my-4">
+                {currentTask.numbers.map((num, i) => (
+                  <span key={i} className="font-bold">{num}</span>
+                ))}
+                <span className="text-3xl font-bold text-red-600">?</span>
+              </div>
+            )}
           </div>
 
           {/* Success message */}

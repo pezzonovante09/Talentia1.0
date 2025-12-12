@@ -110,13 +110,217 @@ function generateSimpleOdd() {
 }
 
 /**
+ * Generate color sorting task
+ */
+function generateColorSort() {
+  const colors = [
+    { name: "red", emoji: "🔴" },
+    { name: "blue", emoji: "🔵" },
+    { name: "green", emoji: "🟢" },
+    { name: "yellow", emoji: "🟡" }
+  ];
+  
+  const targetColor = colors[Math.floor(Math.random() * colors.length)];
+  const otherColors = colors.filter(c => c.name !== targetColor.name);
+  
+  // Create items: 3 of target color, 1 different
+  const items = [
+    targetColor.emoji,
+    targetColor.emoji,
+    targetColor.emoji,
+    otherColors[Math.floor(Math.random() * otherColors.length)].emoji
+  ];
+
+  return {
+    type: "color",
+    question: "Find the DIFFERENT color:",
+    items: shuffle(items),
+    correct: targetColor.emoji,
+    targetColor: targetColor.name
+  };
+}
+
+/**
+ * Generate matching task (find the pair)
+ */
+function generateMatching() {
+  const pairs = [
+    { item: "🐱", match: "🐱" },
+    { item: "🐶", match: "🐶" },
+    { item: "🐰", match: "🐰" },
+    { item: "🐻", match: "🐻" },
+    { item: "🦁", match: "🦁" }
+  ];
+  
+  const target = pairs[Math.floor(Math.random() * pairs.length)];
+  const distractors = pairs.filter(p => p.item !== target.item);
+  
+  const options = [
+    target.match,
+    distractors[0].match,
+    distractors[1].match,
+    distractors[2].match
+  ];
+
+  return {
+    type: "match",
+    question: "Find the SAME as this:",
+    target: target.item,
+    correct: target.match,
+    options: shuffle(options)
+  };
+}
+
+/**
+ * Generate counting task
+ */
+function generateCounting() {
+  const count = Math.floor(Math.random() * 5) + 1; // 1-5
+  const visual = visuals[Math.floor(Math.random() * visuals.length)];
+  
+  const options = [
+    count,
+    count + 1,
+    Math.max(1, count - 1),
+    count + 2
+  ];
+
+  return {
+    type: "count",
+    question: "How many do you see?",
+    count: count,
+    visual: visual,
+    correct: count,
+    options: shuffle(options)
+  };
+}
+
+/**
+ * Generate simple pattern task
+ */
+function generatePattern() {
+  const patterns = [
+    { items: ["🔴", "🔵", "🔴", "🔵", "?"], next: "🔴" },
+    { items: ["🟢", "🟢", "🟡", "🟢", "🟢", "?"], next: "🟡" },
+    { items: ["🔺", "🟦", "🔺", "🟦", "?"], next: "🔺" },
+    { items: ["⭐", "⭐", "💫", "⭐", "⭐", "?"], next: "💫" }
+  ];
+  
+  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const distractors = ["🔴", "🔵", "🟢", "🟡", "🔺", "🟦"].filter(
+    item => item !== pattern.next
+  );
+
+  return {
+    type: "pattern",
+    question: "What comes next?",
+    items: pattern.items,
+    correct: pattern.next,
+    options: shuffle([pattern.next, ...distractors.slice(0, 3)])
+  };
+}
+
+/**
+ * Generate size comparison task
+ */
+function generateSizeComparison() {
+  const sizes = ["big", "small"];
+  const targetSize = sizes[Math.floor(Math.random() * sizes.length)];
+  
+  const bigItems = ["🐘", "🦏", "🦒", "🐋"];
+  const smallItems = ["🐭", "🐤", "🐛", "🐜"];
+  
+  const bigItem = bigItems[Math.floor(Math.random() * bigItems.length)];
+  const smallItem = smallItems[Math.floor(Math.random() * smallItems.length)];
+
+  return {
+    type: "size",
+    question: `Which one is ${targetSize}?`,
+    bigItem: bigItem,
+    smallItem: smallItem,
+    correct: targetSize === "big" ? bigItem : smallItem,
+    options: shuffle([bigItem, smallItem, "🐱", "🐶"])
+  };
+}
+
+/**
+ * Generate category task (what belongs together)
+ */
+function generateCategory() {
+  const categories = [
+    {
+      name: "animals",
+      items: ["🐱", "🐶", "🐰", "🐻"],
+      distractors: ["🍎", "🚗", "🏠", "📚"]
+    },
+    {
+      name: "fruits",
+      items: ["🍎", "🍌", "🍊", "🍇"],
+      distractors: ["🚗", "🏠", "📚", "🔴"]
+    },
+    {
+      name: "vehicles",
+      items: ["🚗", "🚌", "🚲", "✈️"],
+      distractors: ["🍎", "🏠", "📚", "🐱"]
+    }
+  ];
+  
+  const category = categories[Math.floor(Math.random() * categories.length)];
+  const target = category.items[Math.floor(Math.random() * category.items.length)];
+
+  return {
+    type: "category",
+    question: "Which one belongs with these?",
+    categoryItems: category.items.filter(item => item !== target),
+    correct: target,
+    options: shuffle([target, ...category.distractors.slice(0, 3)])
+  };
+}
+
+/**
+ * Generate simple sequence task
+ */
+function generateSequence() {
+  const sequences = [
+    { start: 1, step: 1, length: 3 }, // 1, 2, 3, ?
+    { start: 2, step: 1, length: 3 }, // 2, 3, 4, ?
+    { start: 1, step: 2, length: 3 }  // 1, 3, 5, ?
+  ];
+  
+  const seq = sequences[Math.floor(Math.random() * sequences.length)];
+  const numbers = [];
+  for (let i = 0; i < seq.length; i++) {
+    numbers.push(seq.start + i * seq.step);
+  }
+  const next = seq.start + seq.length * seq.step;
+  
+  const options = [
+    next,
+    next + 1,
+    Math.max(1, next - 1),
+    next + 2
+  ];
+
+  return {
+    type: "sequence",
+    question: "What number comes next?",
+    numbers: numbers,
+    correct: next,
+    options: shuffle(options)
+  };
+}
+
+/**
  * Generate a special task based on difficulty
  * All tasks are simplified for special needs
  */
 export function generateSpecialTask(difficulty = "easy") {
-  // For special mode, we keep it simple
-  // Rotate between task types
-  const types = ["add", "subtract", "compare", "odd"];
+  // Expanded task types for variety
+  const types = [
+    "add", "subtract", "compare", "odd",
+    "color", "match", "count", "pattern",
+    "size", "category", "sequence"
+  ];
   const type = types[Math.floor(Math.random() * types.length)];
 
   switch (type) {
@@ -128,6 +332,20 @@ export function generateSpecialTask(difficulty = "easy") {
       return generateSimpleComparison();
     case "odd":
       return generateSimpleOdd();
+    case "color":
+      return generateColorSort();
+    case "match":
+      return generateMatching();
+    case "count":
+      return generateCounting();
+    case "pattern":
+      return generatePattern();
+    case "size":
+      return generateSizeComparison();
+    case "category":
+      return generateCategory();
+    case "sequence":
+      return generateSequence();
     default:
       return generateSimpleAddition();
   }

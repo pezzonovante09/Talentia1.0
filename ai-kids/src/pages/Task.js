@@ -46,10 +46,13 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     setMistakes(0);
     setLockedOption(null);
     setSessionFinished(false);
+    setLastCompletedTask(null);
   }, [currentLevel, difficultyModifier]);
 
   // Track if session is finished to prevent showing 4th task
   const [sessionFinished, setSessionFinished] = useState(false);
+  // Store the last completed task to keep it visible during transition
+  const [lastCompletedTask, setLastCompletedTask] = useState(null);
 
   // Generate 3 tasks where each is progressively harder:
   // Task 1: Easy (level 1)
@@ -84,11 +87,17 @@ export default function Task({ level = null, onFinish, islandId = null }) {
     return [task1, task2, task3];
   }, [currentLevel, difficultyModifier, profile, islandId]);
 
-  // Only show task if step is within bounds and session not finished - prevent showing 4th task
-  const q = !sessionFinished && step < 3 && step < tasks.length ? tasks[step] : null;
+  // Show current task, or last completed task if session is finished
+  // This keeps the last task visible during transition
+  const q = sessionFinished ? lastCompletedTask : (step < 3 && step < tasks.length ? tasks[step] : null);
 
   function finishSession() {
     if (!profile) return;
+    
+    // Save the current task to keep it visible during transition
+    if (q) {
+      setLastCompletedTask(q);
+    }
     
     // Mark session as finished immediately to prevent showing 4th task
     setSessionFinished(true);
